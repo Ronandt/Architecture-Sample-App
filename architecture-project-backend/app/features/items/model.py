@@ -2,12 +2,12 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from infrastructure.base import Base
-from features.users.model import User
+
 
 class Item(Base):
     __tablename__ = "items"
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
-    owner_id = Column(Integer, ForeignKey("users.id"))
+    description = Column(String, nullable=True)
+    owner_id = Column(String, nullable=False)  # Keycloak user ID
 
-    owner = relationship("User", back_populates="items")

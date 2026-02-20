@@ -3,7 +3,6 @@ from sqlalchemy import create_engine
 from shared.config import settings
 from fastapi_sqlalchemy import db
 from features.items.model import Item  
-from features.items.model import User
 from infrastructure.base import Base
 
 class Database():

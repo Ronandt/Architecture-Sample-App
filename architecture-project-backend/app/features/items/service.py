@@ -1,23 +1,26 @@
 
 from repository import ItemRepository
-from app.shared.exceptions import ItemTitleExceeded,ItemDescriptionExceeded
+from app.shared.exceptions import InvalidItemTitle, InvalidItemDescription
 
 class ItemService:
     """Business logic layer for Items."""
 
     def __init__(self, repository):
         self.repository = repository
-      
-
-
     def create_item(self, title, description, keycloak_user_id: str):
-        if(len(title) > 30):
-            raise ItemTitleExceeded
-        elif(len(description) > 100):
-            raise ItemDescriptionExceeded
+        sanitised_title = title.strip()
+        sanitised_description = description.strip()
+        if(len(sanitised_title) > 30):
+            raise InvalidItemTitle("Title exceeds 30 characters")
+        elif len(sanitised_title) == 0:
+            raise InvalidItemTitle("Title must have more than 0 characters")
+        elif len(sanitised_description == 0):
+            raise InvalidItemDescription("Description must have more than 0 characters")
+        elif(len(sanitised_description) > 100):
+            raise InvalidItemDescription("Description exceeds 100 characters")
         return self.repository.create_item(
-            title,
-            description,
+            sanitised_title,
+            sanitised_description,
             owner_id=keycloak_user_id
         )
 

@@ -1,22 +1,52 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_sqlalchemy import DBSessionMiddleware
+
+from shared.config import settings
 from shared.exceptions import ApplicationException
 from infrastructure.database import Database
-from fastapi_sqlalchemy import DBSessionMiddleware, db
+from features.items.router import router as items_router
+from features.users.router import router as users_router
 
-app = FastAPI(title="SCVU API")
+database = Database()
 
-async def global_exception_handler(request: Request, exc: ApplicationException):
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    database.prepopulate_database()
+    yield
+
+
+app = FastAPI(title="Architecture Template API", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.add_middleware(DBSessionMiddleware, db_url=database.get_connection_info())
+
+app.include_router(items_router, prefix="/items")
+app.include_router(users_router, prefix="/users")
+
+
+@app.exception_handler(ApplicationException)
+async def application_exception_handler(request: Request, exc: ApplicationException):
     return JSONResponse(
         status_code=exc.http_status,
         content={
             "message": exc.message,
             "details": exc.details,
-            "path": str(request.url)
-        }
+            "path": str(request.url),
+        },
     )
 
-# Global handler for unhandled exceptions
+
 @app.exception_handler(Exception)
 async def global_unhandled_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
@@ -24,23 +54,11 @@ async def global_unhandled_exception_handler(request: Request, exc: Exception):
         content={
             "message": "Internal Server Error",
             "details": str(exc),
-            "path": str(request.url)
-        }
+            "path": str(request.url),
+        },
     )
 
 
-database = Database()
-
-app.add_middleware(DBSessionMiddleware, db_url = database.get_connection_info())
-
-
-@app.on_event("startup")
-def startup_event():
-    database.prepopulate_database()
-
-# Register routers
-#app.include_router(users_router)
-
-@app.get("/")
+@app.get("/", tags=["health"])
 def health_check():
     return {"status": "OK"}

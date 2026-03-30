@@ -21,4 +21,8 @@ class DatabaseUnavaliable(ApplicationException):
 
 class ItemNotFound(ApplicationException):
     def __init__(self, message: str, details: dict | None = None):
-        super().__init__(message=message, http_status=404, details=  details)
+        super().__init__(message=message, http_status=404, details=details)
+
+class ItemUploadError(ApplicationException):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message=message, http_status=422, details=details)

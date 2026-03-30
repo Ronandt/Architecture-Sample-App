@@ -1,9 +1,19 @@
 from pydantic import BaseModel
 
-class UserCreate(BaseModel):
-    name: str
-    email: str
 
-class UserResponse(BaseModel):
+class UserProfileResponse(BaseModel):
+    sub: str
+    email: str | None
+    name: str | None
+    preferred_username: str | None
+    roles: list[str]
+
+
+class UserSyncResponse(BaseModel):
     id: int
-    success: bool
+    keycloak_sub: str
+    email: str | None
+    name: str | None
+
+    class Config:
+        from_attributes = True

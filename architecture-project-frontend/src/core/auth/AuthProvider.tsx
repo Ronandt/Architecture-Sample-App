@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // block via third-party cookie restrictions. Without this flag,
         // Keycloak treats every post-login check as unauthenticated and
         // immediately redirects back to login — creating an infinite loop.
-        checkLoginIframe: false,
+        checkLoginIframe: true,
       })
       .then((authenticated) => {
         setIsAuthenticated(authenticated)

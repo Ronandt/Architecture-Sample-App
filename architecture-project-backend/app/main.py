@@ -1,4 +1,5 @@
 import logging
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -10,7 +11,6 @@ from shared.config import settings
 from shared.exceptions import ApplicationException
 from shared.logging_config import configure_logging
 from infrastructure.database import Database
-from infrastructure.middleware import RequestLoggingMiddleware
 from features.items.router import router as items_router
 from features.users.router import router as users_router
 
@@ -41,7 +41,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(DBSessionMiddleware, db_url=database.get_connection_info())
-app.add_middleware(RequestLoggingMiddleware)
+
+
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info(
+        "%s %s -> %d (%.1fms)",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
+
 
 app.include_router(items_router, prefix="/items")
 app.include_router(users_router, prefix="/users")

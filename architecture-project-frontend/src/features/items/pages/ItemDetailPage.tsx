@@ -14,7 +14,7 @@ export default function ItemDetailPage() {
     const file = e.target.files?.[0]
     if (!file) return
     upload.mutate(file, {
-      onSuccess: ({ url }) => toast.success('Uploaded', { description: url }),
+      onSuccess: () => toast.success('Image uploaded successfully'),
       onError: (err) => toast.error('Upload failed', { description: err.message }),
     })
   }

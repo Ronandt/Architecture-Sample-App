@@ -1,8 +1,8 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import keycloak from '../auth/keycloak'
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? '/api',
+  baseURL: (import.meta.env.VITE_API_URL as string | undefined) ?? '/api',
 })
 
 apiClient.interceptors.request.use((config) => {
@@ -14,7 +14,7 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  (error: AxiosError) => {
     if (error.response?.status === 401) {
       keycloak.login()
     }

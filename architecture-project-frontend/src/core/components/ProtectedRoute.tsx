@@ -1,14 +1,13 @@
-import { Center, Loader } from '@mantine/core'
 import { useAuth } from '../auth/AuthProvider'
 
-export default function ProtectedRoute({ children }) {
+export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
     return (
-      <Center h="100vh">
-        <Loader />
-      </Center>
+      <div className="flex items-center justify-center h-screen">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
     )
   }
 
@@ -16,5 +15,5 @@ export default function ProtectedRoute({ children }) {
   // so isAuthenticated is always true here. Guard kept for safety.
   if (!isAuthenticated) return null
 
-  return children
+  return <>{children}</>
 }

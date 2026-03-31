@@ -1,17 +1,20 @@
+import io
+import json
+import logging
+import os
+
 import boto3
 from botocore.exceptions import ClientError
-import os
-import json
-import io
-from dotenv import load_dotenv
+
+from shared.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class S3BucketClient:
     _instance = None
 
-    load_dotenv(dotenv_path="secret.env")
-
-    DEFAULT_BUCKET_NAME = os.environ.get("S3_BUCKET")
+    DEFAULT_BUCKET_NAME = settings.S3_BUCKET
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -20,10 +23,10 @@ class S3BucketClient:
 
     def __init__(
         self,
-        host=os.environ.get("S3_ENDPOINT"),
-        access_key=os.environ.get("S3_ACCESS_KEY"),
-        secret_key=os.environ.get("S3_SECRET_KEY"),
-        cert=os.environ.get("S3_SSL_CERT", "").strip(),
+        host: str = settings.S3_ENDPOINT,
+        access_key: str = settings.S3_ACCESS_KEY.get_secret_value(),
+        secret_key: str = settings.S3_SECRET_KEY.get_secret_value(),
+        cert: str = settings.S3_SSL_CERT.strip(),
     ):
         if hasattr(self, "_initialized") and self._initialized:
             return
@@ -34,9 +37,9 @@ class S3BucketClient:
         if cert:
             if os.path.exists(cert):
                 self.cert_path = cert
-                print(f"Using SSL Certificate from: {self.cert_path}")
+                logger.info("Using SSL Certificate from: %s", self.cert_path)
             else:
-                print(f"WARNING: Certificate not found at {cert}. Defaulting to standard SSL.")
+                logger.warning("Certificate not found at %s. Defaulting to standard SSL.", cert)
 
         self.__client = boto3.client(
             "s3",
@@ -60,7 +63,7 @@ class S3BucketClient:
             self.__client.head_bucket(Bucket=bucket_name)
             return "Bucket already found"
         except ClientError:
-            print("Bucket not found. Creating new bucket...")
+            logger.info("Bucket %s not found, creating...", bucket_name)
             self.__client.create_bucket(Bucket=bucket_name)
             self.__client.put_public_access_block(Bucket=bucket_name)
             self.__client.put_bucket_cors(
@@ -125,17 +128,16 @@ class S3BucketClient:
             return f"An error occurred during deletion: {e}"
 
     def generate_presigned_url(
-        self, url: str, expiration: int = 3600, bucket_name=DEFAULT_BUCKET_NAME
+        self, object_key: str, expiration: int = 3600, bucket_name=DEFAULT_BUCKET_NAME
     ) -> str | None:
         try:
-            object_name = self._extract_key(url)
             return self.__client.generate_presigned_url(
                 "get_object",
-                Params={"Bucket": bucket_name, "Key": object_name},
+                Params={"Bucket": bucket_name, "Key": object_key},
                 ExpiresIn=expiration,
             )
         except Exception as e:
-            print(f"An error occurred while generating presigned URL: {e}")
+            logger.error("Error generating presigned URL: %s", e)
             return None
 
     def list_objects(self, prefix: str = "", bucket_name=DEFAULT_BUCKET_NAME) -> list[str]:
@@ -144,7 +146,7 @@ class S3BucketClient:
             response = self.__client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
             return [obj["Key"] for obj in response.get("Contents", [])]
         except Exception as e:
-            print(f"Error listing objects: {e}")
+            logger.error("Error listing objects: %s", e)
             return []
 
     def copy_object(
@@ -159,7 +161,7 @@ class S3BucketClient:
             )
             return True
         except Exception as e:
-            print(f"Error copying object: {e}")
+            logger.error("Error copying object: %s", e)
             return False
 
     def get_object(self, key: str, bucket_name=DEFAULT_BUCKET_NAME) -> bytes | None:
@@ -168,7 +170,7 @@ class S3BucketClient:
             response = self.__client.get_object(Bucket=bucket_name, Key=key)
             return response["Body"].read()
         except Exception as e:
-            print(f"Error getting object '{key}': {e}")
+            logger.error("Error getting object '%s': %s", key, e)
             return None
 
     def object_exists(self, key: str, bucket_name=DEFAULT_BUCKET_NAME) -> bool:

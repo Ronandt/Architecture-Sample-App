@@ -1,8 +1,12 @@
+import logging
+
 from fastapi_sqlalchemy import db
 from sqlalchemy.exc import OperationalError
 
 from features.items.model import Item
 from shared.exceptions import DatabaseUnavaliable, ItemNotFound
+
+logger = logging.getLogger(__name__)
 
 
 class ItemRepository:
@@ -17,7 +21,7 @@ class ItemRepository:
             return item
         except OperationalError as e:
             db.session.rollback()
-            print(f"Database error on create_item: {e}")
+            logger.error("Database error on create_item: %s", e)
             raise DatabaseUnavaliable("Database has problems, try again")
 
     def get_items_for_user(self, owner_id: str) -> list[Item]:
@@ -26,7 +30,7 @@ class ItemRepository:
             return db.session.query(Item).filter(Item.owner_id == owner_id).all()
         except OperationalError as e:
             db.session.rollback()
-            print(f"Database error on get_items_for_user: {e}")
+            logger.error("Database error on get_items_for_user: %s", e)
             raise DatabaseUnavaliable("An unexpected database error occurred.")
 
     def get_item(self, item_id: int, owner_id: str) -> Item:
@@ -42,5 +46,18 @@ class ItemRepository:
             return item
         except OperationalError as e:
             db.session.rollback()
-            print(f"Database error on get_item: {e}")
+            logger.error("Database error on get_item: %s", e)
+            raise DatabaseUnavaliable("An unexpected database error occurred.")
+
+    def update_image_url(self, item_id: int, owner_id: str, image_url: str) -> Item:
+        """Persist the S3 image URL on the item row."""
+        try:
+            item = self.get_item(item_id, owner_id)
+            item.image_url = image_url
+            db.session.commit()
+            db.session.refresh(item)
+            return item
+        except OperationalError as e:
+            db.session.rollback()
+            logger.error("Database error on update_image_url: %s", e)
             raise DatabaseUnavaliable("An unexpected database error occurred.")

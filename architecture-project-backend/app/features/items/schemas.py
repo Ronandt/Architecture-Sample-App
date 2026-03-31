@@ -13,4 +13,5 @@ class ItemResponse(BaseModel):
     title: str
     description: str | None = None
     owner_id: str
+    image_url: str | None = None
 

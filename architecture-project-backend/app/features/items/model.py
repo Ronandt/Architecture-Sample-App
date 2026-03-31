@@ -10,4 +10,5 @@ class Item(Base):
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
     owner_id = Column(String, nullable=False)  # Keycloak user ID
+    image_url = Column(String, nullable=True)
 

@@ -2,8 +2,12 @@ import jwt
 import urllib.request
 import json
 import ssl
+import logging
 import requests
 from shared.config import settings
+from shared.auth import TokenClaims
+
+logger = logging.getLogger(__name__)
 
 
 class KeycloakAdapter:
@@ -57,24 +61,24 @@ class KeycloakAdapter:
         certs_url = f"{url}/realms/{realm}"
 
         if not cert:
-            print(f"WARNING: No SSL cert configured — connecting without verification to {certs_url}")
+            logger.warning("No SSL cert configured — connecting without verification to %s", certs_url)
             return self._fetch_public_key(certs_url)
 
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         context.load_verify_locations(cadata=cert)
         return self._fetch_public_key(certs_url, context=context)
 
-    def verify_user_token(self, user_token: str, public_key: str) -> tuple[bool, dict]:
+    def verify_user_token(self, user_token: str, public_key: str) -> tuple[bool, TokenClaims | None]:
         """Decode and validate a Bearer JWT using the realm public key."""
         if user_token is None:
-            return False, {}
+            return False, None
         try:
             bearer = user_token.split(" ")[1]
-            claims = jwt.decode(bearer, public_key, algorithms=["RS256"], audience="account")
-            return True, claims
+            raw_claims = jwt.decode(bearer, public_key, algorithms=["RS256"], audience="account")
+            return True, TokenClaims.model_validate(raw_claims)
         except Exception as e:
-            print(f"Token verification failed: {e}")
-            return False, {}
+            logger.warning("Token verification failed: %s", e)
+            return False, None
 
     # ------------------------------------------------------------------
     # Token management (template methods — use as needed)

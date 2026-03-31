@@ -39,9 +39,13 @@ class ItemService:
             raise ItemUploadError("Filename must not be empty")
 
         # Verify the item belongs to this user before uploading
-        self.repository.get_item(item_id, owner_id)
+        item = self.repository.get_item(item_id, owner_id)
 
+        # Delete the previous image if it exists and the key is changing
         object_key = f"items/{owner_id}/{item_id}/{filename}"
+        if item.image_url and item.image_url != object_key:
+            self.s3_client.delete(item.image_url)
+
         self.s3_client.upload(object_key, data, content_type=content_type)
         self.repository.update_image_url(item_id, owner_id, object_key)
 

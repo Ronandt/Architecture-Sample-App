@@ -2,6 +2,8 @@
 
 A full-stack reference implementation demonstrating standard patterns for new projects. The backend uses FastAPI with vertical-slice architecture; the frontend uses React with a matching feature-based structure.
 
+In this application, users are able to uploaded 'items' and images. Users can only see their own images. 
+
 ---
 
 ## Stack

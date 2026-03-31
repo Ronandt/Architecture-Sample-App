@@ -8,7 +8,7 @@ from features.items.dependencies import get_item_service
 from shared.dependencies import get_current_user
 from shared.auth import TokenClaims
 
-router = APIRouter(tags=["items"])
+router = APIRouter(tags=["items"], dependencies=[Depends(get_current_user)])
 
 
 @router.post("", response_model=ItemResponse, status_code=201)

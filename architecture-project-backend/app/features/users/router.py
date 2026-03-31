@@ -6,7 +6,7 @@ from features.users.dependencies import get_user_service
 from shared.dependencies import get_current_user
 from shared.auth import TokenClaims
 
-router = APIRouter(tags=["users"])
+router = APIRouter(tags=["users"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("/me", response_model=UserProfileResponse)

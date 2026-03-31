@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class UserProfileResponse(BaseModel):
@@ -10,10 +10,9 @@ class UserProfileResponse(BaseModel):
 
 
 class UserSyncResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     keycloak_sub: str
     email: str | None
     name: str | None
-
-    class Config:
-        from_attributes = True

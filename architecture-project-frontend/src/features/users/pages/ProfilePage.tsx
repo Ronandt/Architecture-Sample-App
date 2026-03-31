@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useMe, useSyncUser } from '../hooks/useUser'
 
 export default function ProfilePage() {
+  const navigate = useNavigate()
   const { data: profile, isLoading, isError } = useMe()
   const sync = useSyncUser()
 
@@ -37,7 +38,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
-      <Link to="/" className="text-sm underline text-blue-600 block mb-4">← Back to dashboard</Link>
+      <button onClick={() => navigate(-1)} className="text-sm underline text-blue-600 block mb-4">← Back</button>
       <h1 className="text-2xl font-bold mb-4">Profile</h1>
       <Card>
         <CardContent className="pt-4 flex flex-col gap-3">

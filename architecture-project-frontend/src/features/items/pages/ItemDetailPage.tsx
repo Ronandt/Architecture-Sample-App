@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -7,6 +7,7 @@ import { useItem, useUploadItemFile } from '../hooks/useItems'
 
 export default function ItemDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { data: item, isLoading, isError } = useItem(id)
   const upload = useUploadItemFile(id)
 
@@ -39,7 +40,7 @@ export default function ItemDetailPage() {
 
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
-      <Link to="/" className="text-sm underline text-blue-600 block mb-4">← Back to dashboard</Link>
+      <button onClick={() => navigate(-1)} className="text-sm underline text-blue-600 block mb-4">← Back</button>
       <Card>
         <CardContent className="pt-4 flex flex-col gap-3">
           <div className="flex justify-between items-center">

@@ -2,7 +2,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, UploadFile, File
 
-from features.items.schemas import ItemCreateRequest, ItemResponse
+from features.items.schemas import ItemCreateRequest, ItemResponse, ItemUploadResponse
 from features.items.service import ItemService
 from features.items.dependencies import get_item_service
 from shared.dependencies import get_current_user
@@ -37,7 +37,7 @@ def get_item(
     return service.get_item(item_id, claims.sub)
 
 
-@router.post("/{item_id}/upload")
+@router.post("/{item_id}/upload", response_model=ItemUploadResponse)
 async def upload_item_file(
     item_id: int,
     file: UploadFile = File(...),
@@ -46,4 +46,4 @@ async def upload_item_file(
 ):
     data = await file.read()
     url = service.upload_file(item_id, claims.sub, file.filename, data, file.content_type)
-    return {"url": url}
+    return ItemUploadResponse(url=url)

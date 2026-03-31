@@ -12,24 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 class S3BucketClient:
-    _instance = None
-
     DEFAULT_BUCKET_NAME = settings.S3_BUCKET
 
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super(S3BucketClient, cls).__new__(cls)
-        return cls._instance
-
-    def __init__(
-        self,
-        host: str = settings.S3_ENDPOINT,
-        access_key: str = settings.S3_ACCESS_KEY.get_secret_value(),
-        secret_key: str = settings.S3_SECRET_KEY.get_secret_value(),
-        cert: str = settings.S3_SSL_CERT.strip(),
-    ):
-        if hasattr(self, "_initialized") and self._initialized:
-            return
+    def __init__(self):
+        host = settings.S3_ENDPOINT
+        access_key = settings.S3_ACCESS_KEY.get_secret_value()
+        secret_key = settings.S3_SECRET_KEY.get_secret_value()
+        cert = settings.S3_SSL_CERT.strip()
 
         self.host = host
         self.cert_path = None
@@ -48,8 +37,6 @@ class S3BucketClient:
             aws_secret_access_key=secret_key,
             verify=(self.cert_path if self.cert_path else True),
         )
-
-        self._initialized = True
 
     def get_client(self):
         return self.__client

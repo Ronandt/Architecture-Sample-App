@@ -13,8 +13,8 @@ In this application, users are able to uploaded 'items' and images. Users can on
 | Backend | Python 3.11+, FastAPI, SQLAlchemy, fastapi-sqlalchemy |
 | Auth | Keycloak (keycloak-js on frontend, PyJWT RS256 on backend) |
 | File storage | AWS S3 / MinIO (boto3) |
-| Frontend | React, Vite, Mantine UI, TanStack Query, Axios, React Router |
-| Styling | Mantine components + Tailwind for layout tweaks |
+| Frontend | React, Vite, ShadCN UI, TanStack Query, Axios, React Router |
+| Styling | ShadCN components + Tailwind for layout tweaks |
 
 ---
 

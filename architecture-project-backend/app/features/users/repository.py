@@ -1,8 +1,12 @@
+import logging
+
 from fastapi_sqlalchemy import db
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import SQLAlchemyError
 
 from features.users.model import User
 from shared.exceptions import DatabaseUnavaliable
+
+logger = logging.getLogger(__name__)
 
 
 _DB_ERROR_MSG = "An unexpected database error occurred."
@@ -15,18 +19,18 @@ class UserRepository:
         """Return the user with the given Keycloak subject claim, or None."""
         try:
             return db.session.query(User).filter(User.keycloak_sub == keycloak_sub).first()
-        except OperationalError as e:
+        except SQLAlchemyError as e:
             db.session.rollback()
-            print(f"Database error on get_by_sub: {e}")
+            logger.error("Database error on get_by_sub: %s", e)
             raise DatabaseUnavaliable(_DB_ERROR_MSG)
 
     def get_all(self) -> list[User]:
         """Return all users in the database."""
         try:
             return db.session.query(User).all()
-        except OperationalError as e:
+        except SQLAlchemyError as e:
             db.session.rollback()
-            print(f"Database error on get_all: {e}")
+            logger.error("Database error on get_all: %s", e)
             raise DatabaseUnavaliable(_DB_ERROR_MSG)
 
     def upsert(self, keycloak_sub: str, email: str, name: str) -> User:
@@ -42,7 +46,7 @@ class UserRepository:
             db.session.commit()
             db.session.refresh(user)
             return user
-        except OperationalError as e:
+        except SQLAlchemyError as e:
             db.session.rollback()
-            print(f"Database error on upsert: {e}")
+            logger.error("Database error on upsert: %s", e)
             raise DatabaseUnavaliable(_DB_ERROR_MSG)

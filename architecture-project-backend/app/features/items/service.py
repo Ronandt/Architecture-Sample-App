@@ -47,10 +47,7 @@ class ItemService:
         self.s3_client.upload(object_key, data, content_type=content_type)
         self.repository.update_image_url(item_id, owner_id, object_key)
 
-        presigned = self.s3_client.generate_presigned_url(object_key)
-        if presigned is None:
-            raise ItemUploadError("Upload succeeded but could not generate a presigned URL")
-        return presigned
+        return self.s3_client.generate_presigned_url(object_key)
 
     # ------------------------------------------------------------------
     # Reads

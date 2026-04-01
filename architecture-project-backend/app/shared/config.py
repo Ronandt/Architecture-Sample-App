@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     KEYCLOAK_CLIENT_ID:     str       = ""
     KEYCLOAK_CLIENT_SECRET: SecretStr = SecretStr("")
     KEYCLOAK_CERT_FILEPATH: str       = ""
+    KEYCLOAK_ALLOWED_GROUPS:str       = ""
+    KEYCLOAK_ADMIN_ROLE:    str       = ""
 
     # ── S3 ────────────────────────────────────────────────────────────────────
     S3_ENDPOINT:            str       = ""

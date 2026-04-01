@@ -10,3 +10,8 @@ export async function syncUser(): Promise<UserSyncResponse> {
   const { data } = await apiClient.post<UserSyncResponse>('/users/sync')
   return data
 }
+
+export async function getAllUsers(): Promise<UserSyncResponse[]> {
+  const { data } = await apiClient.get<UserSyncResponse[]>('/users/all')
+  return data
+}

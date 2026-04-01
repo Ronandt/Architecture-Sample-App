@@ -5,6 +5,9 @@ from features.users.model import User
 from shared.exceptions import DatabaseUnavaliable
 
 
+_DB_ERROR_MSG = "An unexpected database error occurred."
+
+
 class UserRepository:
     """Data access layer for Users."""
 
@@ -15,7 +18,16 @@ class UserRepository:
         except OperationalError as e:
             db.session.rollback()
             print(f"Database error on get_by_sub: {e}")
-            raise DatabaseUnavaliable("An unexpected database error occurred.")
+            raise DatabaseUnavaliable(_DB_ERROR_MSG)
+
+    def get_all(self) -> list[User]:
+        """Return all users in the database."""
+        try:
+            return db.session.query(User).all()
+        except OperationalError as e:
+            db.session.rollback()
+            print(f"Database error on get_all: {e}")
+            raise DatabaseUnavaliable(_DB_ERROR_MSG)
 
     def upsert(self, keycloak_sub: str, email: str, name: str) -> User:
         """Create or update a user record from Keycloak claims."""
@@ -33,4 +45,4 @@ class UserRepository:
         except OperationalError as e:
             db.session.rollback()
             print(f"Database error on upsert: {e}")
-            raise DatabaseUnavaliable("An unexpected database error occurred.")
+            raise DatabaseUnavaliable(_DB_ERROR_MSG)

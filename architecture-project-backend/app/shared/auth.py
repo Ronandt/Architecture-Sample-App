@@ -11,3 +11,4 @@ class TokenClaims(BaseModel):
     name: str | None = None
     preferred_username: str | None = None
     realm_access: RealmAccess = RealmAccess()
+    groups: list[str] = []

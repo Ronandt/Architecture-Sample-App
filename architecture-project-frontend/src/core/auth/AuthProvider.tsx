@@ -5,8 +5,29 @@ import type { AuthContextValue } from '../types/auth'
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+const ALLOWED_GROUPS = (import.meta.env.VITE_ALLOWED_GROUPS as string | undefined)
+  ?.split(',')
+  .map((g) => g.trim())
+  .filter(Boolean) ?? []
+
+const ADMIN_ROLE = (import.meta.env.VITE_ADMIN_ROLE as string | undefined)?.trim() ?? ''
+
+function checkAuthorized(tokenParsed: KeycloakTokenParsed | null | undefined): boolean {
+  if (ALLOWED_GROUPS.length === 0) return true
+  const groups: string[] = (tokenParsed as Record<string, unknown> | null | undefined)?.groups as string[] ?? []
+  return groups.some((g) => ALLOWED_GROUPS.includes(g))
+}
+
+function checkAdmin(tokenParsed: KeycloakTokenParsed | null | undefined): boolean {
+  if (!ADMIN_ROLE) return false
+  const roles: string[] = (tokenParsed?.realm_access as { roles?: string[] } | undefined)?.roles ?? []
+  return roles.includes(ADMIN_ROLE)
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthorized, setIsAuthorized] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [userInfo, setUserInfo] = useState<KeycloakTokenParsed | null>(null)
 
@@ -17,6 +38,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // the reset initial state (which would leave isLoading=true forever).
     if (keycloak.didInitialize) {
       setIsAuthenticated(keycloak.authenticated ?? false)
+      setIsAuthorized(checkAuthorized(keycloak.tokenParsed))
+      setIsAdmin(checkAdmin(keycloak.tokenParsed))
       setUserInfo(keycloak.tokenParsed ?? null)
       setIsLoading(false)
       return
@@ -34,6 +57,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then((authenticated) => {
         setIsAuthenticated(authenticated)
         if (authenticated) {
+          setIsAuthorized(checkAuthorized(keycloak.tokenParsed))
+          setIsAdmin(checkAdmin(keycloak.tokenParsed))
           setUserInfo(keycloak.tokenParsed ?? null)
           setInterval(() => {
             keycloak.updateToken(60).catch(() => keycloak.logout())
@@ -45,6 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value: AuthContextValue = {
     isAuthenticated,
+    isAuthorized,
+    isAdmin,
     isLoading,
     userInfo: userInfo as Record<string, unknown> | null,
     token: keycloak.token,

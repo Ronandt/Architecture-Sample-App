@@ -4,6 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from infrastructure.adapters.keycloak_adapter import KeycloakAdapter
 from infrastructure.adapters.s3_adapter import S3BucketClient
 from shared.auth import TokenClaims
+from shared.config import settings
 
 _http_bearer = HTTPBearer()
 
@@ -46,4 +47,24 @@ def get_current_user(
     ok, claims = adapter.verify_user_token(f"Bearer {token}", public_key)
     if not ok or claims is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    allowed_groups = [g.strip() for g in settings.KEYCLOAK_ALLOWED_GROUPS.split(",") if g.strip()]
+    if allowed_groups:
+        user_groups = set(claims.groups)
+        if not user_groups.intersection(allowed_groups):
+            raise HTTPException(status_code=403, detail="Access denied: insufficient group membership")
+
+    return claims
+
+
+def require_admin(claims: TokenClaims = Depends(get_current_user)) -> TokenClaims:
+    """
+    FastAPI dependency — requires the authenticated user to have the configured admin role.
+    Raises HTTP 403 if the user lacks the role.
+    """
+    admin_role = settings.KEYCLOAK_ADMIN_ROLE.strip()
+    if not admin_role:
+        raise HTTPException(status_code=500, detail="Admin role not configured")
+    if admin_role not in claims.realm_access.roles:
+        raise HTTPException(status_code=403, detail="Admin access required")
     return claims

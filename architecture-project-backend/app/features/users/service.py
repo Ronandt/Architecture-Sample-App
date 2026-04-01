@@ -19,6 +19,10 @@ class UserService:
             roles=claims.realm_access.roles,
         )
 
+    def get_all_users(self) -> list[UserSyncResponse]:
+        """Return all users — admin only."""
+        return [UserSyncResponse.model_validate(u) for u in self.repository.get_all()]
+
     def sync_user(self, claims: TokenClaims) -> UserSyncResponse:
         """Upsert the Keycloak user into the local database."""
         user = self.repository.upsert(

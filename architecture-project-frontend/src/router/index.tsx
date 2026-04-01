@@ -1,9 +1,11 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom'
 import ProtectedRoute from '../core/components/ProtectedRoute'
+import AdminRoute from '../core/components/AdminRoute'
 import NavBar from '../core/components/NavBar'
 import DashboardPage from '../features/items/pages/DashboardPage'
 import ItemDetailPage from '../features/items/pages/ItemDetailPage'
 import ProfilePage from '../features/users/pages/ProfilePage'
+import AdminUsersPage from '../features/users/pages/AdminUsersPage'
 
 function AppLayout() {
   return (
@@ -21,6 +23,7 @@ export const router = createBrowserRouter([
       { path: '/', element: <DashboardPage /> },
       { path: '/items/:id', element: <ItemDetailPage /> },
       { path: '/profile', element: <ProfilePage /> },
+      { path: '/admin/users', element: <AdminRoute><AdminUsersPage /></AdminRoute> },
     ],
   },
 ])

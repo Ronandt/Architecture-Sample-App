@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     KEYCLOAK_CERT_FILEPATH: str       = ""
     KEYCLOAK_ALLOWED_GROUPS:str       = ""
     KEYCLOAK_ADMIN_ROLE:    str
+    KEYCLOAK_ADMIN_USERNAME:str       = ""
+    KEYCLOAK_ADMIN_PASSWORD:SecretStr = SecretStr("")
     KEYCLOAK_TIMEOUT:       int       = 10
 
     # ── S3 ────────────────────────────────────────────────────────────────────

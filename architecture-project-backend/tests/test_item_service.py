@@ -1,14 +1,13 @@
 import pytest
 from unittest.mock import MagicMock
 from features.items.service import ItemService
-from features.items.model import Item
 from shared.exceptions import InvalidItemTitle, InvalidItemDescription, ItemUploadError
 
 
-def make_item(**kwargs) -> Item:
+def make_item(**kwargs):
     defaults = dict(id=1, title="Test", description="", owner_id="user-1", image_url=None)
     defaults.update(kwargs)
-    item = Item.__new__(Item)
+    item = MagicMock()
     for k, v in defaults.items():
         setattr(item, k, v)
     return item

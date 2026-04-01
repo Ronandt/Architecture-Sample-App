@@ -213,6 +213,125 @@ class S3BucketClient:
         except ClientError:
             return False
 
+    def delete_objects(self, keys: list[str], bucket_name=DEFAULT_BUCKET_NAME) -> None:
+        """Batch-delete multiple objects in a single API call (max 1000 per call)."""
+        if not keys:
+            return
+        try:
+            self.__client.delete_objects(
+                Bucket=bucket_name,
+                Delete={"Objects": [{"Key": k} for k in keys], "Quiet": True},
+            )
+        except (ConnectTimeoutError, ReadTimeoutError) as e:
+            logger.error("Batch delete timed out: %s", e)
+            raise StorageTimeout("Batch delete timed out", {"count": len(keys)})
+        except Exception as e:
+            logger.error("Batch delete failed: %s", e)
+            raise StorageError("Batch delete failed", {"count": len(keys), "reason": str(e)})
+
+    def get_object_metadata(self, key: str, bucket_name=DEFAULT_BUCKET_NAME) -> dict:
+        """
+        Return object metadata without downloading the body.
+        Includes: ContentLength, ContentType, LastModified, ETag, Metadata.
+        """
+        try:
+            response = self.__client.head_object(Bucket=bucket_name, Key=key)
+            return {
+                "content_length": response.get("ContentLength"),
+                "content_type": response.get("ContentType"),
+                "last_modified": response.get("LastModified"),
+                "etag": response.get("ETag", "").strip('"'),
+                "metadata": response.get("Metadata", {}),
+            }
+        except (ConnectTimeoutError, ReadTimeoutError) as e:
+            logger.error("Metadata fetch timed out for '%s': %s", key, e)
+            raise StorageTimeout("Metadata fetch timed out", {"object": key})
+        except ClientError as e:
+            code = e.response["Error"]["Code"]
+            if code == "404":
+                raise StorageError("Object not found", {"object": key})
+            raise StorageError("Failed to get metadata", {"object": key, "reason": str(e)})
+        except Exception as e:
+            logger.error("Metadata fetch failed for '%s': %s", key, e)
+            raise StorageError("Failed to get metadata", {"object": key, "reason": str(e)})
+
+    def generate_presigned_upload_url(
+        self,
+        object_key: str,
+        content_type: str = "application/octet-stream",
+        expiration: int = 300,
+        bucket_name=DEFAULT_BUCKET_NAME,
+    ) -> str:
+        """
+        Generate a presigned PUT URL for direct browser → S3 uploads.
+        The client must send the file as the raw request body with the matching Content-Type header.
+        Expires in 5 minutes by default.
+        """
+        try:
+            return self.__client.generate_presigned_url(
+                "put_object",
+                Params={"Bucket": bucket_name, "Key": object_key, "ContentType": content_type},
+                ExpiresIn=expiration,
+                HttpMethod="PUT",
+            )
+        except (ConnectTimeoutError, ReadTimeoutError) as e:
+            logger.error("Presigned upload URL timed out for '%s': %s", object_key, e)
+            raise StorageTimeout("Presigned upload URL generation timed out", {"object": object_key})
+        except Exception as e:
+            logger.error("Presigned upload URL generation failed for '%s': %s", object_key, e)
+            raise StorageError("Failed to generate presigned upload URL", {"object": object_key, "reason": str(e)})
+
+    def move_object(
+        self, source_key: str, dest_key: str, bucket_name=DEFAULT_BUCKET_NAME
+    ) -> None:
+        """Move (rename) an object by copying it then deleting the source."""
+        self.copy_object(source_key, dest_key, bucket_name)
+        self.delete(source_key, bucket_name)
+
+    # ------------------------------------------------------------------
+    # Bucket operations
+    # ------------------------------------------------------------------
+
+    def bucket_exists(self, bucket_name=DEFAULT_BUCKET_NAME) -> bool:
+        """Return True if the bucket exists and is accessible."""
+        try:
+            self.__client.head_bucket(Bucket=bucket_name)
+            return True
+        except ClientError:
+            return False
+
+    def set_bucket_lifecycle(
+        self,
+        days_until_expiry: int,
+        prefix: str = "",
+        bucket_name=DEFAULT_BUCKET_NAME,
+    ) -> None:
+        """
+        Set a lifecycle rule that auto-deletes objects after N days.
+        Useful for temporary uploads, drafts, or cache objects.
+        Pass prefix='' to apply to all objects, or e.g. 'tmp/' for a subfolder.
+        """
+        try:
+            self.__client.put_bucket_lifecycle_configuration(
+                Bucket=bucket_name,
+                LifecycleConfiguration={
+                    "Rules": [
+                        {
+                            "ID": f"expire-after-{days_until_expiry}d",
+                            "Status": "Enabled",
+                            "Filter": {"Prefix": prefix},
+                            "Expiration": {"Days": days_until_expiry},
+                        }
+                    ]
+                },
+            )
+        except (ConnectTimeoutError, ReadTimeoutError) as e:
+            logger.error("Set lifecycle timed out: %s", e)
+            raise StorageTimeout("Set lifecycle timed out", {"bucket": bucket_name})
+        except Exception as e:
+            logger.error("Set lifecycle failed: %s", e)
+            raise StorageError("Failed to set lifecycle policy", {"bucket": bucket_name, "reason": str(e)})
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------

@@ -20,8 +20,10 @@ function checkAuthorized(tokenParsed: KeycloakTokenParsed | null | undefined): b
 
 function checkAdmin(tokenParsed: KeycloakTokenParsed | null | undefined): boolean {
   if (!ADMIN_ROLE) return false
-  const roles: string[] = (tokenParsed?.realm_access as { roles?: string[] } | undefined)?.roles ?? []
-  return roles.includes(ADMIN_ROLE)
+  const clientId = import.meta.env.VITE_KEYCLOAK_CLIENT_ID as string
+  const resourceAccess = tokenParsed?.resource_access as Record<string, { roles?: string[] }> | undefined
+  const clientRoles: string[] = resourceAccess?.[clientId]?.roles ?? []
+  return clientRoles.includes(ADMIN_ROLE)
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

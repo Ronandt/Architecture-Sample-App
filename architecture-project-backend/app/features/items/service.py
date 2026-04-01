@@ -38,6 +38,8 @@ class ItemService:
         if not filename:
             raise ItemUploadError("Filename must not be empty")
 
+        self.s3_client.ping()
+
         item = self.repository.get_item(item_id, owner_id)
 
         object_key = f"items/{owner_id}/{item_id}/{filename}"

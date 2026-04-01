@@ -65,6 +65,6 @@ def require_admin(claims: TokenClaims = Depends(get_current_user)) -> TokenClaim
     admin_role = settings.KEYCLOAK_ADMIN_ROLE.strip()
     if not admin_role:
         raise HTTPException(status_code=500, detail="Admin role not configured")
-    if admin_role not in claims.realm_access.roles:
+    if admin_role not in claims.get_client_roles(settings.KEYCLOAK_CLIENT_ID):
         raise HTTPException(status_code=403, detail="Admin access required")
     return claims

@@ -87,6 +87,24 @@ class S3BucketClient:
             self.__client.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(policy))
 
     # ------------------------------------------------------------------
+    # Health
+    # ------------------------------------------------------------------
+
+    def ping(self, bucket_name=DEFAULT_BUCKET_NAME) -> None:
+        """Raise StorageUnavailable if S3 is unreachable or the bucket does not exist."""
+        try:
+            self.__client.head_bucket(Bucket=bucket_name)
+        except (ConnectTimeoutError, ReadTimeoutError):
+            raise StorageTimeout("S3 is not responding")
+        except ClientError as e:
+            code = e.response["Error"]["Code"]
+            if code in ("404", "NoSuchBucket"):
+                raise StorageError("S3 bucket does not exist", {"bucket": bucket_name})
+            raise StorageError("S3 health check failed", {"reason": str(e)})
+        except Exception as e:
+            raise StorageError("S3 is unavailable", {"reason": str(e)})
+
+    # ------------------------------------------------------------------
     # Object operations
     # ------------------------------------------------------------------
 

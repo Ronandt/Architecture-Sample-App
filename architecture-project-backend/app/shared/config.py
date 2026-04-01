@@ -11,13 +11,13 @@ class Settings(BaseSettings):
     DATABASE_URL:           str       = "sqlite:///./test.db"
 
     # ── Keycloak ──────────────────────────────────────────────────────────────
-    KEYCLOAK_REALM:         str       = "realm"
-    KEYCLOAK_URL:           str       = "localhost"
+    KEYCLOAK_REALM:         str
+    KEYCLOAK_URL:           str
     KEYCLOAK_CLIENT_ID:     str       = ""
     KEYCLOAK_CLIENT_SECRET: SecretStr = SecretStr("")
     KEYCLOAK_CERT_FILEPATH: str       = ""
     KEYCLOAK_ALLOWED_GROUPS:str       = ""
-    KEYCLOAK_ADMIN_ROLE:    str       = ""
+    KEYCLOAK_ADMIN_ROLE:    str       
 
     # ── S3 ────────────────────────────────────────────────────────────────────
     S3_ENDPOINT:            str       = ""

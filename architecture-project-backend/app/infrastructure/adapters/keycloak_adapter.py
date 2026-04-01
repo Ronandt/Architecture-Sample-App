@@ -1,13 +1,18 @@
 import jwt
 import urllib.request
+import urllib.error
 import json
 import ssl
 import logging
 import requests
+from requests.exceptions import ConnectionError, Timeout
 from shared.config import settings
 from shared.auth import TokenClaims
+from shared.exceptions import KeycloakError, KeycloakUnavailable
 
 logger = logging.getLogger(__name__)
+
+_KEYCLOAK_UNREACHABLE = "Could not connect to Keycloak"
 
 
 class KeycloakAdapter:
@@ -31,12 +36,17 @@ class KeycloakAdapter:
     # ------------------------------------------------------------------
 
     def _fetch_public_key(self, certs_url: str, context: ssl.SSLContext = None) -> str:
-        with urllib.request.urlopen(certs_url, context=context) as response:
-            certs = json.loads(response.read())
-            public_key = certs.get("public_key")
-            if public_key is None:
-                raise ValueError("No public key found in Keycloak certs")
-            return f"-----BEGIN PUBLIC KEY-----{public_key}-----END PUBLIC KEY-----"
+        try:
+            with urllib.request.urlopen(certs_url, context=context, timeout=settings.KEYCLOAK_TIMEOUT) as response:
+                certs = json.loads(response.read())
+                public_key = certs.get("public_key")
+                if public_key is None:
+                    raise KeycloakError("No public key found in Keycloak response", {"url": certs_url})
+                return f"-----BEGIN PUBLIC KEY-----{public_key}-----END PUBLIC KEY-----"
+        except urllib.error.URLError as e:
+            if isinstance(e.reason, TimeoutError):
+                raise KeycloakUnavailable("Keycloak timed out fetching public key", {"url": certs_url})
+            raise KeycloakUnavailable("Could not reach Keycloak", {"url": certs_url, "reason": str(e)})
 
     @property
     def _token_url(self) -> str:
@@ -53,9 +63,9 @@ class KeycloakAdapter:
         cert = self.cert_filepath.strip() if self.cert_filepath is not None else ""
 
         if not url or not realm:
-            raise ValueError(
-                f"KEYCLOAK_URL or KEYCLOAK_REALM is empty — "
-                f"realm={len(realm)}, url={len(url)}, cert={len(cert)}"
+            raise KeycloakError(
+                "KEYCLOAK_URL or KEYCLOAK_REALM is not configured",
+                {"url_set": bool(url), "realm_set": bool(realm)},
             )
 
         certs_url = f"{url}/realms/{realm}"
@@ -91,51 +101,87 @@ class KeycloakAdapter:
 
     def get_token(self, username: str, password: str) -> dict:
         """Fetch an access token via Resource Owner Password Grant. Requires confidential client."""
-        response = requests.post(self._token_url, data={
-            "grant_type": "password",
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
-            "username": username,
-            "password": password,
-        })
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = requests.post(self._token_url, data={
+                "grant_type": "password",
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+                "username": username,
+                "password": password,
+            }, timeout=settings.KEYCLOAK_TIMEOUT)
+            response.raise_for_status()
+            return response.json()
+        except Timeout:
+            raise KeycloakUnavailable("Keycloak timed out during token request")
+        except ConnectionError:
+            raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
+        except requests.HTTPError as e:
+            raise KeycloakError("Token request failed", {"status": e.response.status_code})
 
     def refresh_token(self, refresh_token: str) -> dict:
         """Exchange a refresh token for a new access token."""
-        response = requests.post(self._token_url, data={
-            "grant_type": "refresh_token",
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
-            "refresh_token": refresh_token,
-        })
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = requests.post(self._token_url, data={
+                "grant_type": "refresh_token",
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+                "refresh_token": refresh_token,
+            }, timeout=settings.KEYCLOAK_TIMEOUT)
+            response.raise_for_status()
+            return response.json()
+        except Timeout:
+            raise KeycloakUnavailable("Keycloak timed out during token refresh")
+        except ConnectionError:
+            raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
+        except requests.HTTPError as e:
+            raise KeycloakError("Token refresh failed", {"status": e.response.status_code})
 
     def introspect_token(self, token: str) -> dict:
         """Introspect a token via Keycloak's introspection endpoint."""
         url = f"{self.server_url}/realms/{self.realm}/protocol/openid-connect/token/introspect"
-        response = requests.post(url, data={
-            "token": token,
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
-        })
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = requests.post(url, data={
+                "token": token,
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+            }, timeout=settings.KEYCLOAK_TIMEOUT)
+            response.raise_for_status()
+            return response.json()
+        except Timeout:
+            raise KeycloakUnavailable("Keycloak timed out during token introspection")
+        except ConnectionError:
+            raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
+        except requests.HTTPError as e:
+            raise KeycloakError("Token introspection failed", {"status": e.response.status_code})
 
     def get_user_info(self, access_token: str) -> dict:
         """Fetch user profile from Keycloak's userinfo endpoint."""
         url = f"{self.server_url}/realms/{self.realm}/protocol/openid-connect/userinfo"
-        response = requests.get(url, headers={"Authorization": f"Bearer {access_token}"})
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = requests.get(url, headers={"Authorization": f"Bearer {access_token}"},
+                                    timeout=settings.KEYCLOAK_TIMEOUT)
+            response.raise_for_status()
+            return response.json()
+        except Timeout:
+            raise KeycloakUnavailable("Keycloak timed out fetching user info")
+        except ConnectionError:
+            raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
+        except requests.HTTPError as e:
+            raise KeycloakError("User info request failed", {"status": e.response.status_code})
 
     def logout(self, refresh_token: str) -> None:
         """Invalidate a session by calling Keycloak's logout endpoint."""
         url = f"{self.server_url}/realms/{self.realm}/protocol/openid-connect/logout"
-        response = requests.post(url, data={
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
-            "refresh_token": refresh_token,
-        })
-        response.raise_for_status()
+        try:
+            response = requests.post(url, data={
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+                "refresh_token": refresh_token,
+            }, timeout=settings.KEYCLOAK_TIMEOUT)
+            response.raise_for_status()
+        except Timeout:
+            raise KeycloakUnavailable("Keycloak timed out during logout")
+        except ConnectionError:
+            raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
+        except requests.HTTPError as e:
+            raise KeycloakError("Logout request failed", {"status": e.response.status_code})

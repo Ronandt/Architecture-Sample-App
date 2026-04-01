@@ -4,9 +4,11 @@ import logging
 import os
 
 import boto3
-from botocore.exceptions import ClientError
+from botocore.config import Config
+from botocore.exceptions import ClientError, ConnectTimeoutError, ReadTimeoutError
 
 from shared.config import settings
+from shared.exceptions import StorageError, StorageTimeout
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,11 @@ class S3BucketClient:
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
             verify=(self.cert_path if self.cert_path else True),
+            config=Config(
+                connect_timeout=settings.S3_CONNECT_TIMEOUT,
+                read_timeout=settings.S3_READ_TIMEOUT,
+                retries={"max_attempts": 0},
+            ),
         )
 
     def get_client(self):
@@ -92,7 +99,7 @@ class S3BucketClient:
         return_flashblade_url: bool = True,
     ) -> str:
         if not isinstance(data, bytes):
-            return "Error: The 'data' parameter must be of type bytes."
+            raise StorageError("Upload data must be bytes")
         try:
             self.__client.head_bucket(Bucket=bucket_name)
             self.__client.put_object(
@@ -104,41 +111,56 @@ class S3BucketClient:
             if return_flashblade_url:
                 return f"{self.host}/{bucket_name}/{object_name}"
             return f"https://{bucket_name}.s3.amazonaws.com/{object_name}"
+        except StorageError:
+            raise
+        except (ConnectTimeoutError, ReadTimeoutError) as e:
+            logger.error("Upload timed out for '%s': %s", object_name, e)
+            raise StorageTimeout("Upload timed out", {"object": object_name})
         except Exception as e:
-            return f"An error occurred during upload: {e}"
+            logger.error("Upload failed for '%s': %s", object_name, e)
+            raise StorageError("Upload failed", {"object": object_name, "reason": str(e)})
 
-    def delete(self, object_name: str, bucket_name=DEFAULT_BUCKET_NAME) -> str:
+    def delete(self, object_name: str, bucket_name=DEFAULT_BUCKET_NAME) -> None:
         try:
             self.__client.delete_object(Bucket=bucket_name, Key=object_name)
-            return f"Object '{object_name}' deleted successfully from bucket '{bucket_name}'."
+        except (ConnectTimeoutError, ReadTimeoutError) as e:
+            logger.error("Delete timed out for '%s': %s", object_name, e)
+            raise StorageTimeout("Delete timed out", {"object": object_name})
         except Exception as e:
-            return f"An error occurred during deletion: {e}"
+            logger.error("Delete failed for '%s': %s", object_name, e)
+            raise StorageError("Delete failed", {"object": object_name, "reason": str(e)})
 
     def generate_presigned_url(
         self, object_key: str, expiration: int = 3600, bucket_name=DEFAULT_BUCKET_NAME
-    ) -> str | None:
+    ) -> str:
         try:
             return self.__client.generate_presigned_url(
                 "get_object",
                 Params={"Bucket": bucket_name, "Key": object_key},
                 ExpiresIn=expiration,
             )
+        except (ConnectTimeoutError, ReadTimeoutError) as e:
+            logger.error("Presigned URL timed out for '%s': %s", object_key, e)
+            raise StorageTimeout("Presigned URL generation timed out", {"object": object_key})
         except Exception as e:
-            logger.error("Error generating presigned URL: %s", e)
-            return None
+            logger.error("Presigned URL generation failed for '%s': %s", object_key, e)
+            raise StorageError("Failed to generate presigned URL", {"object": object_key, "reason": str(e)})
 
     def list_objects(self, prefix: str = "", bucket_name=DEFAULT_BUCKET_NAME) -> list[str]:
         """List object keys in a bucket, optionally filtered by prefix."""
         try:
             response = self.__client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
             return [obj["Key"] for obj in response.get("Contents", [])]
+        except (ConnectTimeoutError, ReadTimeoutError) as e:
+            logger.error("List objects timed out: %s", e)
+            raise StorageTimeout("List objects timed out", {"prefix": prefix})
         except Exception as e:
-            logger.error("Error listing objects: %s", e)
-            return []
+            logger.error("List objects failed: %s", e)
+            raise StorageError("Failed to list objects", {"prefix": prefix, "reason": str(e)})
 
     def copy_object(
         self, source_key: str, dest_key: str, bucket_name=DEFAULT_BUCKET_NAME
-    ) -> bool:
+    ) -> None:
         """Copy an object to a new key within the same bucket."""
         try:
             self.__client.copy_object(
@@ -146,19 +168,24 @@ class S3BucketClient:
                 Bucket=bucket_name,
                 Key=dest_key,
             )
-            return True
+        except (ConnectTimeoutError, ReadTimeoutError) as e:
+            logger.error("Copy timed out from '%s' to '%s': %s", source_key, dest_key, e)
+            raise StorageTimeout("Copy timed out", {"source": source_key, "dest": dest_key})
         except Exception as e:
-            logger.error("Error copying object: %s", e)
-            return False
+            logger.error("Copy failed from '%s' to '%s': %s", source_key, dest_key, e)
+            raise StorageError("Copy failed", {"source": source_key, "dest": dest_key, "reason": str(e)})
 
-    def get_object(self, key: str, bucket_name=DEFAULT_BUCKET_NAME) -> bytes | None:
+    def get_object(self, key: str, bucket_name=DEFAULT_BUCKET_NAME) -> bytes:
         """Download an object and return its content as bytes."""
         try:
             response = self.__client.get_object(Bucket=bucket_name, Key=key)
             return response["Body"].read()
+        except (ConnectTimeoutError, ReadTimeoutError) as e:
+            logger.error("Get object timed out for '%s': %s", key, e)
+            raise StorageTimeout("Get object timed out", {"object": key})
         except Exception as e:
-            logger.error("Error getting object '%s': %s", key, e)
-            return None
+            logger.error("Get object failed for '%s': %s", key, e)
+            raise StorageError("Failed to get object", {"object": key, "reason": str(e)})
 
     def object_exists(self, key: str, bucket_name=DEFAULT_BUCKET_NAME) -> bool:
         """Return True if the key exists in the bucket (HEAD request)."""

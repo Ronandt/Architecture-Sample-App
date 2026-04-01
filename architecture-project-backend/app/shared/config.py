@@ -17,7 +17,8 @@ class Settings(BaseSettings):
     KEYCLOAK_CLIENT_SECRET: SecretStr = SecretStr("")
     KEYCLOAK_CERT_FILEPATH: str       = ""
     KEYCLOAK_ALLOWED_GROUPS:str       = ""
-    KEYCLOAK_ADMIN_ROLE:    str       
+    KEYCLOAK_ADMIN_ROLE:    str
+    KEYCLOAK_TIMEOUT:       int       = 10
 
     # ── S3 ────────────────────────────────────────────────────────────────────
     S3_ENDPOINT:            str       = ""
@@ -25,6 +26,8 @@ class Settings(BaseSettings):
     S3_SECRET_KEY:          SecretStr = SecretStr("")
     S3_SSL_CERT:            str       = ""
     S3_BUCKET:              str       = ""
+    S3_CONNECT_TIMEOUT:     int       = 5
+    S3_READ_TIMEOUT:        int       = 30
 
     # ── App ───────────────────────────────────────────────────────────────────
     CORS_ORIGINS:           list[str] = ["http://localhost:5173"]

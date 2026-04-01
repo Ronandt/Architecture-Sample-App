@@ -26,3 +26,19 @@ class ItemNotFound(ApplicationException):
 class ItemUploadError(ApplicationException):
     def __init__(self, message: str, details: dict | None = None):
         super().__init__(message=message, http_status=422, details=details)
+
+class StorageError(ApplicationException):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message=message, http_status=502, details=details)
+
+class StorageTimeout(ApplicationException):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message=message, http_status=504, details=details)
+
+class KeycloakUnavailable(ApplicationException):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message=message, http_status=503, details=details)
+
+class KeycloakError(ApplicationException):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(message=message, http_status=502, details=details)

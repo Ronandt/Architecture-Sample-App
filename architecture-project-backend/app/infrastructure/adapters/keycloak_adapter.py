@@ -8,6 +8,7 @@ import requests
 from requests.exceptions import ConnectionError, Timeout
 from shared.config import settings
 from shared.auth import TokenClaims
+from pydantic import SecretStr
 from shared.exceptions import KeycloakError, KeycloakUnavailable
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ class KeycloakAdapter:
         server_url: str = settings.KEYCLOAK_URL,
         realm: str = settings.KEYCLOAK_REALM,
         client_id: str = settings.KEYCLOAK_CLIENT_ID,
-        client_secret: str = settings.KEYCLOAK_CLIENT_SECRET,
+        client_secret: SecretStr = settings.KEYCLOAK_CLIENT_SECRET,
         cert_filepath: str = settings.KEYCLOAK_CERT_FILEPATH,
     ):
         self.server_url = server_url
@@ -30,6 +31,7 @@ class KeycloakAdapter:
         self.client_id = client_id
         self.client_secret = client_secret
         self.cert_filepath = cert_filepath
+        self._public_key_cache: str | None = None
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -56,8 +58,11 @@ class KeycloakAdapter:
     # Public key / token verification
     # ------------------------------------------------------------------
 
-    def get_public_key(self) -> str:
-        """Fetch the realm's RS256 public key from the Keycloak JWKS endpoint."""
+    def get_public_key(self, *, force_refresh: bool = False) -> str:
+        """Return the realm's RS256 public key, fetching from Keycloak only when necessary."""
+        if self._public_key_cache and not force_refresh:
+            return self._public_key_cache
+
         url = self.server_url
         realm = self.realm
         cert = self.cert_filepath.strip() if self.cert_filepath is not None else ""
@@ -72,23 +77,37 @@ class KeycloakAdapter:
 
         if not cert:
             logger.warning("No SSL cert configured — connecting without verification to %s", certs_url)
-            return self._fetch_public_key(certs_url)
+            self._public_key_cache = self._fetch_public_key(certs_url)
+            return self._public_key_cache
 
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         context.load_verify_locations(cadata=cert)
-        return self._fetch_public_key(certs_url, context=context)
+        self._public_key_cache = self._fetch_public_key(certs_url, context=context)
+        return self._public_key_cache
 
-    def verify_user_token(self, user_token: str, public_key: str) -> tuple[bool, TokenClaims | None]:
-        """Decode and validate a Bearer JWT using the realm public key."""
+    def verify_user_token(self, user_token: str) -> tuple[bool, TokenClaims | None]:
+        """Decode and validate a Bearer JWT, retrying once with a fresh key on failure."""
         if user_token is None:
             return False, None
-        try:
-            bearer = user_token.split(" ")[1]
-            raw_claims = jwt.decode(bearer, public_key, algorithms=["RS256"], audience="account")
-            return True, TokenClaims.model_validate(raw_claims)
-        except Exception as e:
-            logger.warning("Token verification failed: %s", e)
-            return False, None
+
+        bearer = user_token.split(" ")[1]
+
+        for attempt, force_refresh in enumerate([False, True]):
+            try:
+                public_key = self.get_public_key(force_refresh=force_refresh)
+                raw_claims = jwt.decode(bearer, public_key, algorithms=["RS256"], audience="account")
+                return True, TokenClaims.model_validate(raw_claims)
+            except jwt.exceptions.InvalidSignatureError:
+                if attempt == 0:
+                    logger.warning("Token signature invalid — refetching public key (possible rotation)")
+                    continue
+                logger.warning("Token signature still invalid after key refresh")
+                return False, None
+            except Exception as e:
+                logger.warning("Token verification failed: %s", e)
+                return False, None
+
+        return False, None
 
     # ------------------------------------------------------------------
     # Token management (template methods — use as needed)

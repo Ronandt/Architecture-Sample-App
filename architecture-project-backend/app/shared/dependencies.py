@@ -43,8 +43,7 @@ def get_current_user(
     Raises HTTP 401 if the token is missing or invalid.
     """
     token = credentials.credentials
-    public_key = adapter.get_public_key()
-    ok, claims = adapter.verify_user_token(f"Bearer {token}", public_key)
+    ok, claims = adapter.verify_user_token(f"Bearer {token}")
     if not ok or claims is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 

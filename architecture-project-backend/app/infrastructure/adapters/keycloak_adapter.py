@@ -17,6 +17,10 @@ _KEYCLOAK_UNREACHABLE = "Could not connect to Keycloak"
 
 
 class KeycloakAdapter:
+    """
+    The source of truth and sole communicator with Keycloak.
+    You can freely use this in Production and Development environments
+    """
 
     def __init__(
         self,
@@ -179,6 +183,9 @@ class KeycloakAdminAdapter:
     Wrapper around python-keycloak's KeycloakAdmin.
     Requires a confidential client and admin credentials configured via
     KEYCLOAK_ADMIN_USERNAME / KEYCLOAK_ADMIN_PASSWORD.
+
+    ONLY USE THIS IN DEVELOPMENT ENVIRONMENTS FOR TESTING PURPOSES
+    THIS CANNOT BE USED IN PRODUCTION
     """
 
     def __init__(

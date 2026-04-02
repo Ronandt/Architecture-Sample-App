@@ -5,7 +5,7 @@ from features.users.schemas import UserProfileResponse, UserSyncResponse
 from features.users.service import UserService
 from features.users.dependencies import get_user_service
 from shared.dependencies import get_current_user, require_admin
-from shared.auth import TokenClaims
+from shared.schemas import TokenClaims
 
 router = APIRouter(tags=["users"], dependencies=[Depends(get_current_user)])
 

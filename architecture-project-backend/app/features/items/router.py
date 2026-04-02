@@ -6,7 +6,7 @@ from features.items.schemas import ItemCreateRequest, ItemResponse, ItemUploadRe
 from features.items.service import ItemService
 from features.items.dependencies import get_item_service
 from shared.dependencies import get_current_user
-from shared.auth import TokenClaims
+from shared.schemas import TokenClaims
 
 router = APIRouter(tags=["items"], dependencies=[Depends(get_current_user)])
 

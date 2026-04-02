@@ -7,7 +7,7 @@ import logging
 from keycloak import KeycloakOpenID, KeycloakAdmin, KeycloakOpenIDConnection
 from keycloak.exceptions import KeycloakError as _KCLibError, KeycloakConnectionError as _KCConnError
 from shared.config import settings
-from shared.auth import TokenClaims
+from shared.schemas import TokenClaims
 from pydantic import SecretStr
 from shared.exceptions import KeycloakError, KeycloakUnavailable
 

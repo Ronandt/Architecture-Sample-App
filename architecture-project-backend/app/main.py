@@ -9,7 +9,7 @@ from fastapi_sqlalchemy import DBSessionMiddleware
 
 from shared.config import settings
 from shared.exceptions import ApplicationException
-from shared.logging_config import configure_logging
+from infrastructure.logging import configure_logging
 from infrastructure.database import Database
 from features.items.router import router as items_router
 from features.users.router import router as users_router

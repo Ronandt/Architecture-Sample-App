@@ -1,6 +1,6 @@
 from features.users.repository import UserRepository
 from features.users.schemas import UserProfileResponse, UserSyncResponse
-from shared.auth import TokenClaims
+from shared.schemas import TokenClaims
 
 
 class UserService:

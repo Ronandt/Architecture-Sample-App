@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from infrastructure.adapters.keycloak_adapter import KeycloakAdapter
 from infrastructure.adapters.s3_adapter import S3BucketClient
-from shared.auth import TokenClaims
+from shared.schemas import TokenClaims
 from shared.config import settings
 
 _http_bearer = HTTPBearer()

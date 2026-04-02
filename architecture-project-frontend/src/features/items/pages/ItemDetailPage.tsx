@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent } from '@/shared/components/ui/card'
+import { Badge } from '@/shared/components/ui/badge'
+import { Alert, AlertDescription } from '@/shared/components/ui/alert'
 import { useItem, useUploadItemFile } from '../hooks/useItems'
 
 export default function ItemDetailPage() {

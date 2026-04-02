@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/shared/components/ui/card'
+import { Badge } from '@/shared/components/ui/badge'
 import type { ItemResponse } from '../../../core/types/api'
 
 export default function ItemCard({ item }: { item: ItemResponse }) {

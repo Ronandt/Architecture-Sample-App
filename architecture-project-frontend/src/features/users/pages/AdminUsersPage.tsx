@@ -1,5 +1,5 @@
-import { Card, CardContent } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent } from '@/shared/components/ui/card'
+import { Alert, AlertDescription } from '@/shared/components/ui/alert'
 import { useAllUsers } from '../hooks/useUser'
 
 export default function AdminUsersPage() {

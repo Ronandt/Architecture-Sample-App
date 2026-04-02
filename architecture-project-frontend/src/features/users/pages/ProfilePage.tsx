@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent } from '@/shared/components/ui/card'
+import { Badge } from '@/shared/components/ui/badge'
+import { Button } from '@/shared/components/ui/button'
+import { Alert, AlertDescription } from '@/shared/components/ui/alert'
 import { useMe, useSyncUser } from '../hooks/useUser'
 
 export default function ProfilePage() {

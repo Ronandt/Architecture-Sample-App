@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/shared/components/ui/button'
+import { Input } from '@/shared/components/ui/input'
+import { Textarea } from '@/shared/components/ui/textarea'
+import { Alert, AlertDescription } from '@/shared/components/ui/alert'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
-} from '@/components/ui/dialog'
+} from '@/shared/components/ui/dialog'
 import { useItems, useCreateItem } from '../hooks/useItems'
 import ItemCard from '../components/ItemCard'
 import type { ItemCreatePayload } from '../../../core/types/api'

@@ -49,7 +49,7 @@ class S3BucketClient:
         return self.__client
 
     # ------------------------------------------------------------------
-    # Bucket management
+    # Bucket management - Use this for development only
     # ------------------------------------------------------------------
 
     def create_bucket_if_not_exists(self, bucket_name=DEFAULT_BUCKET_NAME):
@@ -73,18 +73,7 @@ class S3BucketClient:
                     ]
                 },
             )
-            policy = {
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Principal": {"AWS": "*"},
-                        "Action": ["s3:GetObject"],
-                        "Resource": [f"arn:aws:s3:::{bucket_name}/*"],
-                    }
-                ],
-            }
-            self.__client.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(policy))
+            self.__client.put_bucket_policy(Bucket=bucket_name)
 
     # ------------------------------------------------------------------
     # Health

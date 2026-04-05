@@ -26,7 +26,6 @@ export default function DashboardPage() {
         setForm({ title: '', description: '' })
         toast.success('Item created')
       },
-      onError: (err) => toast.error('Error', { description: err.message }),
     })
   }
 

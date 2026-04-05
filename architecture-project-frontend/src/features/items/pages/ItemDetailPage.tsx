@@ -17,7 +17,6 @@ export default function ItemDetailPage() {
     if (!file) return
     upload.mutate(file, {
       onSuccess: () => toast.success('Image uploaded successfully'),
-      onError: (err) => toast.error('Upload failed', { description: err.message }),
     })
   }
 

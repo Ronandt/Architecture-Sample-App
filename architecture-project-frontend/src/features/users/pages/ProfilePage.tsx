@@ -14,7 +14,6 @@ export default function ProfilePage() {
   function handleSync() {
     sync.mutate(undefined, {
       onSuccess: () => toast.success('Profile synced'),
-      onError: (err) => toast.error('Sync failed', { description: err.message }),
     })
   }
 

@@ -1,0 +1,22 @@
+# =============================================================================
+# Backend Service
+#
+# Exposes the FastAPI pods within the cluster on port 8000.
+# The frontend nginx container targets this service for /api/* proxy requests.
+# Not exposed externally by default — use the Ingress if needed.
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "backend.fullname" . }}
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http    # Named port defined in the Deployment container spec
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "backend.selectorLabels" . | nindent 4 }}

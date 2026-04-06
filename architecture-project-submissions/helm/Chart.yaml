@@ -1,0 +1,65 @@
+# =============================================================================
+# Umbrella (parent) Helm chart — architecture-app
+#
+# This chart does not define Kubernetes resources directly. Its purpose is to:
+#   1. Declare the frontend and backend as local subcharts.
+#   2. Declare Bitnami charts for Keycloak, PostgreSQL, and MinIO as remote
+#      dependency subcharts pulled from the Bitnami Helm repository.
+#   3. Expose a single values.yaml that wires all subcharts together.
+#
+# Before installing, run:
+#   helm repo add bitnami https://charts.bitnami.com/bitnami
+#   helm repo update
+#   helm dependency update ./helm
+#
+# This downloads remote chart archives into helm/charts/. Local subcharts
+# (frontend, backend) are referenced by file path and do not need downloading.
+# =============================================================================
+apiVersion: v2
+name: architecture-app
+description: >
+  Umbrella Helm chart for the Architecture Sample Application.
+  Includes: React/nginx frontend, FastAPI/uvicorn backend,
+  Keycloak (OIDC provider), PostgreSQL (database), and MinIO (S3-compatible storage).
+type: application
+# Chart version — bump this on every release of the chart itself.
+version: 0.1.0
+# appVersion reflects the application version being packaged.
+appVersion: "1.0.0"
+
+dependencies:
+  # ── Local subcharts ────────────────────────────────────────────────────────
+  # Helm resolves these by path relative to this Chart.yaml.
+  # No download step needed — they are part of this repository.
+  - name: frontend
+    version: "0.1.0"
+    repository: "file://./frontend"
+
+  - name: backend
+    version: "0.1.0"
+    repository: "file://./backend"
+
+  # ── Remote Bitnami subcharts ───────────────────────────────────────────────
+  # Pin chart versions for reproducible installs.
+  # Check https://artifacthub.io/packages/helm/bitnami for latest versions.
+  #
+  # Each subchart has a `condition` so it can be disabled when using an
+  # external (managed) service instead of an in-cluster one.
+
+  - name: keycloak
+    version: "24.4.7"
+    repository: "https://charts.bitnami.com/bitnami"
+    # Set keycloak.enabled=false to disable and point backend at an external Keycloak.
+    condition: keycloak.enabled
+
+  - name: postgresql
+    version: "16.4.6"
+    repository: "https://charts.bitnami.com/bitnami"
+    # Set postgresql.enabled=false to use an external database (RDS, Azure, etc.).
+    condition: postgresql.enabled
+
+  - name: minio
+    version: "14.9.1"
+    repository: "https://charts.bitnami.com/bitnami"
+    # Set minio.enabled=false to use AWS S3 or another external object store.
+    condition: minio.enabled

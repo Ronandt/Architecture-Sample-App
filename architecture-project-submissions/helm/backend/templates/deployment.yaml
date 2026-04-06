@@ -1,0 +1,78 @@
+# =============================================================================
+# Backend Deployment — FastAPI / Uvicorn
+#
+# Runs the Python backend application. All configuration is injected via:
+#   - ConfigMap (non-secret: KEYCLOAK_URL, S3_ENDPOINT, CORS_ORIGINS, etc.)
+#   - Secret    (sensitive: DATABASE_URL, KEYCLOAK_CLIENT_SECRET, S3_ACCESS_KEY, etc.)
+#
+# OpenShift compatibility notes:
+#   - runAsNonRoot: true; runAsUser is omitted (OpenShift assigns a random UID).
+#   - The Dockerfile.backend creates an appuser (UID 1000) but OpenShift will
+#     override this with a namespace UID — the app must not rely on a specific UID.
+#   - No privileged ports; uvicorn listens on 8000.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "backend.fullname" . }}
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "backend.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "backend.selectorLabels" . | nindent 8 }}
+      annotations:
+        # Checksum annotations trigger a rolling restart when the ConfigMap or
+        # Secret content changes, even if the Deployment spec is unchanged.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      # OpenShift-compatible security context.
+      securityContext:
+        runAsNonRoot: true
+        # runAsUser is intentionally omitted — OpenShift assigns a namespace UID.
+      containers:
+        - name: backend
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          # ── Environment variables ─────────────────────────────────────────
+          # Sources all keys from the ConfigMap and Secret as env vars.
+          # The app reads these via Pydantic Settings (app/shared/config.py).
+          envFrom:
+            - configMapRef:
+                name: {{ include "backend.fullname" . }}-config
+            - secretRef:
+                name: {{ include "backend.fullname" . }}-secret
+          # ── Health probes ─────────────────────────────────────────────────
+          # FastAPI's root endpoint GET / returns {"status": "OK"}.
+          # initialDelaySeconds accounts for SQLAlchemy table creation on startup.
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

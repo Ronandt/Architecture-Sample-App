@@ -1,0 +1,22 @@
+# =============================================================================
+# Frontend Service
+#
+# Exposes the nginx pods within the cluster on port 8080.
+# The Ingress resource (when enabled) routes external HTTP/HTTPS traffic here.
+# The backend's nginx proxy also targets this service for health checks.
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "frontend.fullname" . }}
+  labels:
+    {{- include "frontend.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http    # Named port defined in the Deployment container spec
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "frontend.selectorLabels" . | nindent 4 }}

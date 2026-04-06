@@ -1,0 +1,39 @@
+# =============================================================================
+# Backend ConfigMap — non-secret environment variables
+#
+# Contains all environment variables that are safe to store in plain text.
+# Sensitive values (DATABASE_URL, KEYCLOAK_CLIENT_SECRET, S3 keys) are in
+# the Secret template (secret.yaml).
+#
+# The Deployment sources this ConfigMap via `envFrom.configMapRef`, making
+# all keys available as environment variables inside the container.
+#
+# Changes here trigger a pod restart via the checksum annotation in the
+# Deployment template.
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "backend.fullname" . }}-config
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+data:
+  # ── Keycloak (non-secret) ──────────────────────────────────────────────────
+  # KEYCLOAK_URL is derived from the release name by the helper function so it
+  # resolves to the Keycloak subchart's in-cluster Service. No hardcoding needed.
+  KEYCLOAK_URL: {{ include "backend.keycloakUrl" . | quote }}
+  KEYCLOAK_REALM: {{ .Values.keycloak.realm | quote }}
+  KEYCLOAK_CLIENT_ID: {{ .Values.keycloak.clientId | quote }}
+  KEYCLOAK_ALLOWED_GROUPS: {{ .Values.keycloak.allowedGroups | quote }}
+  KEYCLOAK_ADMIN_ROLE: {{ .Values.keycloak.adminRole | quote }}
+
+  # ── S3 / MinIO (non-secret) ────────────────────────────────────────────────
+  # S3_ENDPOINT uses the MinIO subchart service name derived from the release name.
+  # Only access/secret keys (sensitive) are stored in the Secret.
+  S3_ENDPOINT: {{ include "backend.s3Endpoint" . | quote }}
+  S3_BUCKET: {{ .Values.s3.bucket | quote }}
+
+  # ── Application ───────────────────────────────────────────────────────────
+  # CORS_ORIGINS must include the public frontend hostname.
+  CORS_ORIGINS: {{ .Values.corsOrigins | quote }}
+  LOG_LEVEL: {{ .Values.logLevel | quote }}

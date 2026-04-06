@@ -1,0 +1,62 @@
+# =============================================================================
+# Stage 1 — Build
+#
+# Uses Node 22 to compile the Vite/React application into static assets.
+#
+# IMPORTANT: VITE_ env vars are intentionally NOT baked in here (except
+# VITE_API_URL which is set to /api so nginx handles routing at runtime).
+# All other config values (Keycloak URL, realm, etc.) are injected at
+# container startup via the window.__APP_CONFIG__ runtime shim — this lets
+# the same Docker image be deployed to dev, staging, and production without
+# a rebuild.
+# =============================================================================
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependency manifests before source code so Docker layer caching skips
+# `npm ci` on code-only changes, significantly speeding up rebuilds.
+COPY architecture-project-frontend/package.json architecture-project-frontend/package-lock.json ./
+
+RUN npm ci --prefer-offline
+
+# Copy the full frontend source tree.
+COPY architecture-project-frontend/ .
+
+# Set API URL to a relative path so the nginx /api proxy block handles routing.
+# All other VITE_ config comes from window.__APP_CONFIG__ at runtime.
+ENV VITE_API_URL=/api
+
+RUN npm run build
+# Output lands in /app/dist
+
+# =============================================================================
+# Stage 2 — Runtime
+#
+# Uses nginx-unprivileged (runs as UID 101, port 8080) for OpenShift
+# compatibility. OpenShift assigns a random UID from the namespace range, and
+# nginx-unprivileged is built to tolerate any non-root UID.
+#
+# The container entrypoint (docker-entrypoint.sh) runs `envsubst` over
+# config.js.template to produce /usr/share/nginx/html/config.js before nginx
+# starts. This file is mounted from a Kubernetes ConfigMap via the Helm chart.
+# =============================================================================
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
+
+# gettext provides the `envsubst` binary used in docker-entrypoint.sh.
+USER root
+RUN apk add --no-cache gettext
+USER nginx
+
+# Copy compiled React app from the builder stage.
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy the entrypoint script. The nginx.conf and config.js.template are
+# mounted from a Kubernetes ConfigMap at runtime — see the frontend Helm
+# subchart's configmap.yaml and deployment.yaml.
+COPY architecture-project-frontend/docker-entrypoint.sh /docker-entrypoint.sh
+
+# nginx-unprivileged listens on 8080 by default.
+EXPOSE 8080
+
+ENTRYPOINT ["/docker-entrypoint.sh"]

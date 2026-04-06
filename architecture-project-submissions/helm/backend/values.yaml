@@ -1,0 +1,54 @@
+# =============================================================================
+# Backend subchart default values
+#
+# These defaults are overridden by the umbrella chart's `backend:` section.
+# Sensitive values default to empty strings — they must be supplied via the
+# umbrella values.yaml or --set overrides at install time.
+# =============================================================================
+
+image:
+  repository: your-registry/architecture-backend
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  host: "api.localhost"
+  tls:
+    enabled: false
+    secretName: ""
+
+# Database credentials — URL assembled in _helpers.tpl using release name.
+database:
+  user: "appuser"
+  password: ""
+  name: "appdb"
+  port: "5432"
+
+# Keycloak settings — KEYCLOAK_URL assembled in _helpers.tpl using release name.
+keycloak:
+  port: "80"
+  realm: ""
+  clientId: ""
+  clientSecret: ""
+  allowedGroups: ""
+  adminRole: ""
+
+# S3/MinIO settings — S3_ENDPOINT assembled in _helpers.tpl using release name.
+s3:
+  port: "9000"
+  accessKey: ""
+  secretKey: ""
+  bucket: ""
+
+corsOrigins: '["http://localhost:5173"]'
+logLevel: "INFO"
+
+resources: {}

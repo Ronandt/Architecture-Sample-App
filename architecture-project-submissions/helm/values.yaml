@@ -1,0 +1,282 @@
+# =============================================================================
+# Master values file — architecture-app umbrella chart
+#
+# STRUCTURE
+#   Top-level keys matching a subchart name (frontend, backend, keycloak,
+#   postgresql, minio) are passed verbatim to that subchart. This is Helm's
+#   standard subchart value-override mechanism.
+#
+# SECRETS
+#   Sensitive values are shown here as "CHANGEME" placeholders.
+#   In production, override them via one of:
+#     a) --set key=value at install time
+#     b) A separate secrets file: helm install -f secrets.values.yaml
+#     c) External Secrets Operator (https://external-secrets.io) — swap the
+#        Secret templates for ExternalSecret CRDs without changing Deployments.
+#     d) Sealed Secrets (https://github.com/bitnami-labs/sealed-secrets)
+#
+#   NEVER commit real secret values to version control.
+#
+# SERVICE NAME WIRING
+#   The Bitnami charts create Services named: <release-name>-<chart-name>
+#   For example, `helm install arch-app ./helm` creates:
+#     - arch-app-postgresql (port 5432)
+#     - arch-app-keycloak   (port 80)
+#     - arch-app-minio      (port 9000)
+#   The backend subchart's _helpers.tpl constructs URLs from .Release.Name
+#   so no hardcoding of service names is needed here.
+# =============================================================================
+
+# ── Global ────────────────────────────────────────────────────────────────────
+global:
+  # Add image pull secret names here if using a private container registry.
+  imagePullSecrets: []
+  # imagePullSecrets:
+  #   - name: my-registry-pull-secret
+
+# ── Frontend subchart ─────────────────────────────────────────────────────────
+frontend:
+  # Container image built from architecture-project-submissions/Dockerfile.frontend.
+  image:
+    repository: your-registry/architecture-frontend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  # Number of nginx pod replicas. Use HPA for auto-scaling in production.
+  replicaCount: 2
+
+  service:
+    type: ClusterIP
+    port: 8080    # Matches EXPOSE in Dockerfile.frontend (nginx-unprivileged default)
+
+  ingress:
+    enabled: true
+    # Use "nginx" for the community ingress controller.
+    # OpenShift: ingress resources are automatically converted to Routes by the
+    # OpenShift router when the ingressClassName matches the router's class.
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+    host: "app.example.com"    # Replace with your actual hostname
+    tls:
+      enabled: true
+      secretName: "frontend-tls"    # Pre-create this TLS Secret or use cert-manager
+
+  # ── Runtime configuration ──────────────────────────────────────────────────
+  # These values are NOT baked into the Docker image. The docker-entrypoint.sh
+  # script templates them into /usr/share/nginx/html/config.js at pod startup
+  # via `envsubst`. The React app reads them from window.__APP_CONFIG__.
+  config:
+    # Public URL of Keycloak — must be reachable from the end user's browser,
+    # NOT the internal cluster address.
+    keycloakUrl: "https://auth.example.com"
+    keycloakRealm: "myrealm"
+    keycloakClientId: "my-client"    # Public (frontend) Keycloak client
+    # API base URL. /api is relative, allowing the nginx proxy block to handle
+    # routing to the backend service without exposing a separate hostname.
+    apiUrl: "/api"
+    # Comma-separated Keycloak group names allowed to access the application.
+    allowedGroups: "my-group"
+    adminRole: "admin"
+
+  # The nginx /api proxy block forwards requests to this in-cluster address.
+  # Format: http://<release-name>-backend:<port>
+  # This is templated in the ConfigMap; update if your release name differs.
+  backendServiceUrl: "http://arch-app-backend:8000"
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+
+# ── Backend subchart ──────────────────────────────────────────────────────────
+backend:
+  image:
+    repository: your-registry/architecture-backend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 2
+
+  service:
+    type: ClusterIP
+    port: 8000
+
+  # The backend is intentionally not exposed via Ingress by default — all
+  # external traffic goes through the frontend nginx /api proxy.
+  # Enable this only for direct API access (e.g. admin tooling, API-only clients).
+  ingress:
+    enabled: false
+    className: "nginx"
+    host: "api.example.com"
+    tls:
+      enabled: false
+      secretName: "backend-tls"
+
+  # ── Database ───────────────────────────────────────────────────────────────
+  # The DATABASE_URL is assembled by the _helpers.tpl template function
+  # `backend.databaseUrl` using these fields plus the release name to derive
+  # the PostgreSQL service hostname. Must match postgresql.auth.* below.
+  database:
+    user: "appuser"
+    password: "CHANGEME"    # Must match postgresql.auth.password
+    name: "appdb"
+    port: "5432"
+
+  # ── Keycloak ───────────────────────────────────────────────────────────────
+  # Internal (cluster) Keycloak settings. KEYCLOAK_URL is constructed in
+  # _helpers.tpl as http://<release-name>-keycloak:<port>. This is the
+  # cluster-internal address used by the backend to verify JWT tokens.
+  keycloak:
+    port: "80"
+    realm: "myrealm"
+    clientId: "my-client"       # Confidential (backend) Keycloak client
+    clientSecret: "CHANGEME"    # Keycloak confidential client secret (sensitive)
+    allowedGroups: "my-group"
+    adminRole: "admin"
+
+  # ── S3 / MinIO ─────────────────────────────────────────────────────────────
+  # S3_ENDPOINT is constructed in _helpers.tpl as http://<release-name>-minio:<port>.
+  # Access and secret keys must match minio.auth.rootUser/rootPassword below.
+  s3:
+    port: "9000"
+    accessKey: "CHANGEME"    # Must match minio.auth.rootUser
+    secretKey: "CHANGEME"    # Must match minio.auth.rootPassword
+    bucket: "my-bucket"
+
+  # ── Application ────────────────────────────────────────────────────────────
+  # CORS_ORIGINS must include the public frontend URL.
+  corsOrigins: '["https://app.example.com"]'
+  logLevel: "INFO"    # DEBUG | INFO | WARNING | ERROR
+
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "512Mi"
+
+# ── Keycloak subchart (Bitnami) ───────────────────────────────────────────────
+# Full reference: https://github.com/bitnami/charts/tree/main/bitnami/keycloak
+keycloak:
+  # Set to false to disable the in-cluster Keycloak and use an external instance.
+  enabled: true
+
+  auth:
+    adminUser: "admin"
+    adminPassword: "CHANGEME"    # Keycloak admin console password (sensitive)
+
+  service:
+    type: ClusterIP
+    ports:
+      http: 80    # HTTP port used for cluster-internal communication
+
+  # TLS is terminated at the Ingress level, not within the pod.
+  ingress:
+    enabled: false
+
+  # Keycloak's own bundled PostgreSQL is disabled — we use the shared postgresql
+  # subchart instead (one database pod hosting both appdb and keycloak databases).
+  postgresql:
+    enabled: false
+
+  # Point Keycloak at the shared PostgreSQL subchart.
+  # NOTE: externalDatabase.host must be set to the PostgreSQL service name at
+  # install time because Helm cannot self-reference the release name in values.yaml.
+  # Set it with: --set keycloak.externalDatabase.host=<release-name>-postgresql
+  externalDatabase:
+    host: "arch-app-postgresql"    # Replace arch-app with your actual release name
+    port: 5432
+    user: "keycloak"
+    password: "CHANGEME"           # Must match the keycloak role password in initdbScripts
+    database: "keycloak"
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+
+# ── PostgreSQL subchart (Bitnami) ─────────────────────────────────────────────
+# Full reference: https://github.com/bitnami/charts/tree/main/bitnami/postgresql
+postgresql:
+  # Set to false to use an external database (RDS, Azure Database, etc.).
+  enabled: true
+
+  auth:
+    # Superuser (postgres) password.
+    postgresPassword: "CHANGEME"
+    # Application database credentials — used by the FastAPI backend.
+    username: "appuser"
+    password: "CHANGEME"    # Must match backend.database.password
+    database: "appdb"
+
+  primary:
+    persistence:
+      enabled: true
+      size: "8Gi"
+      # storageClass: "standard"    # Uncomment and set for your cluster's storage class
+
+    # initdbScripts run on the first pod start when the data directory is empty.
+    # We use this to create the keycloak database and role alongside appdb.
+    # The password here must match keycloak.externalDatabase.password above.
+    initdbScripts:
+      create_keycloak_db.sql: |
+        -- Create the keycloak role and database for Keycloak's backing store.
+        -- This script is idempotent: it checks for existence before creating.
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'keycloak') THEN
+            CREATE ROLE keycloak WITH LOGIN PASSWORD 'CHANGEME';
+          END IF;
+        END
+        $$;
+        CREATE DATABASE keycloak OWNER keycloak;
+
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+# ── MinIO subchart (Bitnami) ──────────────────────────────────────────────────
+# Full reference: https://github.com/bitnami/charts/tree/main/bitnami/minio
+minio:
+  # Set to false to use AWS S3 or another external object store.
+  enabled: true
+
+  auth:
+    # MinIO root credentials — also used as the S3 access/secret key pair.
+    # Must match backend.s3.accessKey and backend.s3.secretKey.
+    rootUser: "CHANGEME"
+    rootPassword: "CHANGEME"
+
+  service:
+    ports:
+      api: 9000       # S3-compatible API port
+      console: 9001   # MinIO web console port
+
+  # Create the application bucket automatically on first boot.
+  # Must match backend.s3.bucket.
+  defaultBuckets: "my-bucket"
+
+  persistence:
+    enabled: true
+    size: "20Gi"
+    # storageClass: "standard"    # Uncomment and set for your cluster's storage class
+
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"

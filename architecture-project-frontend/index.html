@@ -5,6 +5,17 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>architecture-project-frontend</title>
+    <!--
+      Runtime config script — populated by the container entrypoint (docker-entrypoint.sh)
+      from Kubernetes environment variables at pod startup. Sets window.__APP_CONFIG__ with
+      Keycloak URL, realm, client ID, API URL, and access control settings.
+
+      In local development this file does not exist; the onerror handler suppresses the
+      warning and the app falls back to build-time import.meta.env values from .env.
+
+      See: architecture-project-submissions/helm/frontend/templates/configmap.yaml
+    -->
+    <script src="/config.js" onerror="console.warn('[config.js] Not found — using build-time env vars (local dev mode)')"></script>
   </head>
   <body>
     <div id="root"></div>

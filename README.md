@@ -220,3 +220,20 @@ Set `AWS_S3_ENDPOINT_URL=http://localhost:9000` in `app/.env`. The MinIO console
 | POST | `/items/{id}/upload` | Bearer | Upload file to S3, returns presigned URL |
 | GET | `/users/me` | Bearer | Current user profile from JWT claims |
 | POST | `/users/sync` | Bearer | Upsert user record into DB from JWT claims |
+
+
+## Install Helm Charts
+helm repo add bitnami https://charts.bitnami.com/bitnami && helm repo update
+helm dependency update ./architecture-project-submissions/helm
+helm install arch-app ./architecture-project-submissions/helm \
+  --namespace my-namespace \
+  --set postgresql.auth.postgresPassword=... \
+  --set postgresql.auth.password=... \
+  --set backend.database.password=... \
+  --set backend.keycloak.clientSecret=... \
+  --set keycloak.auth.adminPassword=... \
+  --set keycloak.externalDatabase.password=... \
+  --set minio.auth.rootUser=... \
+  --set minio.auth.rootPassword=... \
+  --set backend.s3.accessKey=... \
+  --set backend.s3.secretKey=...

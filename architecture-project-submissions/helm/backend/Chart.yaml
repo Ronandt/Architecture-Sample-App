@@ -1,0 +1,10 @@
+# =============================================================================
+# Backend subchart metadata
+# Manages the FastAPI application served by Uvicorn.
+# =============================================================================
+apiVersion: v2
+name: backend
+description: FastAPI backend served by Uvicorn (OpenShift-compatible)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

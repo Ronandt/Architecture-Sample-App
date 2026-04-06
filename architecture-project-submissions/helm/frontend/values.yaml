@@ -1,0 +1,42 @@
+# =============================================================================
+# Frontend subchart default values
+#
+# These defaults are overridden by the umbrella chart's `frontend:` section
+# in helm/values.yaml. They exist so the subchart can also be installed
+# standalone for testing.
+# =============================================================================
+
+image:
+  repository: your-registry/architecture-frontend
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8080    # nginx-unprivileged default, must match EXPOSE in Dockerfile.frontend
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: "localhost"
+  tls:
+    enabled: false
+    secretName: ""
+
+# Runtime config values — injected as env vars into the container and
+# substituted into config.js.template by docker-entrypoint.sh.
+config:
+  keycloakUrl: ""
+  keycloakRealm: ""
+  keycloakClientId: ""
+  apiUrl: "/api"
+  allowedGroups: ""
+  adminRole: ""
+
+# Target for the nginx /api reverse-proxy block.
+backendServiceUrl: "http://localhost:8000"
+
+resources: {}

@@ -1,0 +1,106 @@
+# =============================================================================
+# Frontend Deployment
+#
+# Runs the nginx-unprivileged container that serves the React SPA.
+#
+# OpenShift compatibility notes:
+#   - runAsNonRoot: true is set; runAsUser is intentionally omitted because
+#     OpenShift assigns a random UID from the project's UID range.
+#   - nginx-unprivileged handles arbitrary UIDs correctly (no /var/run/nginx.pid
+#     permission issues).
+#   - Port 8080 requires no special privileges.
+#
+# Runtime config is injected via two ConfigMap volume mounts:
+#   - nginx.conf          → /etc/nginx/conf.d/default.conf
+#   - config.js.template  → /usr/share/nginx/html/config.js.template
+# The entrypoint script processes config.js.template with envsubst.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "frontend.fullname" . }}
+  labels:
+    {{- include "frontend.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "frontend.selectorLabels" . | nindent 6 }}
+  # RollingUpdate ensures zero-downtime deploys: new pods are Ready before old
+  # ones are terminated. maxUnavailable: 0 prevents traffic disruption.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "frontend.selectorLabels" . | nindent 8 }}
+      annotations:
+        # Checksum annotation: if nginx.conf or config.js.template changes,
+        # the pod template hash changes, triggering a rolling restart.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      # OpenShift-compatible security context.
+      # runAsNonRoot enforces non-root without specifying a UID — OpenShift
+      # injects a namespace-assigned UID at runtime.
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: frontend
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # ── Runtime config env vars ──────────────────────────────────────
+          # Read by docker-entrypoint.sh to populate window.__APP_CONFIG__
+          # in config.js via envsubst.
+          env:
+            - name: APP_KEYCLOAK_URL
+              value: {{ .Values.config.keycloakUrl | quote }}
+            - name: APP_KEYCLOAK_REALM
+              value: {{ .Values.config.keycloakRealm | quote }}
+            - name: APP_KEYCLOAK_CLIENT_ID
+              value: {{ .Values.config.keycloakClientId | quote }}
+            - name: APP_API_URL
+              value: {{ .Values.config.apiUrl | quote }}
+            - name: APP_ALLOWED_GROUPS
+              value: {{ .Values.config.allowedGroups | quote }}
+            - name: APP_ADMIN_ROLE
+              value: {{ .Values.config.adminRole | quote }}
+          # ── Volume mounts ────────────────────────────────────────────────
+          volumeMounts:
+            # Replace nginx-unprivileged's default config with our custom server block.
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: nginx.conf    # subPath mounts a single file, not the whole ConfigMap
+            # Provide the config.js.template for the entrypoint to process.
+            - name: nginx-config
+              mountPath: /usr/share/nginx/html/config.js.template
+              subPath: config.js.template
+          # ── Health probes ────────────────────────────────────────────────
+          # nginx returns 200 for any valid path; / is a safe liveness target.
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10    # Give the entrypoint time to write config.js
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        # Mount both nginx.conf and config.js.template from the same ConfigMap.
+        - name: nginx-config
+          configMap:
+            name: {{ include "frontend.fullname" . }}-config

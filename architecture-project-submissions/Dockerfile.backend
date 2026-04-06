@@ -1,0 +1,46 @@
+# =============================================================================
+# Backend — FastAPI / Uvicorn
+#
+# Uses python:3.13-slim for a small production image.
+#
+# All configuration is provided via environment variables at runtime — no
+# .env file is copied into the image. Kubernetes ConfigMaps and Secrets
+# inject these values (see the backend Helm subchart).
+#
+# Build context should be the repository root so this Dockerfile can COPY
+# from architecture-project-backend/:
+#   docker build -f architecture-project-submissions/Dockerfile.backend .
+# =============================================================================
+FROM python:3.13-slim AS runtime
+
+# System packages:
+#   libpq-dev  — required by psycopg (PostgreSQL client library)
+#   curl       — useful for liveness probe scripts and debugging
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpq-dev curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies before copying application code.
+# This layer is cached as long as requirements.txt is unchanged, so
+# code-only changes don't trigger a full pip install.
+COPY architecture-project-backend/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application source. Config lives in app/shared/config.py and is
+# populated entirely from environment variables via Pydantic Settings.
+COPY architecture-project-backend/app ./app
+
+# Run as a dedicated non-root user for security hardening.
+# UID 1000 is used here; OpenShift will override with a namespace-assigned
+# UID at runtime, which is fine since no files need to be owned by this user.
+RUN adduser --disabled-password --gecos "" --uid 1000 appuser
+USER appuser
+
+# Uvicorn listens on 8000.
+EXPOSE 8000
+
+# --workers 1 keeps the in-pod process model simple.
+# Scale horizontally with Kubernetes HPA rather than in-pod multiprocessing.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

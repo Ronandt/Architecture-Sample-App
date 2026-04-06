@@ -105,6 +105,7 @@ class S3BucketClient:
         content_type: str = "application/octet-stream",
         bucket_name=DEFAULT_BUCKET_NAME,
         return_flashblade_url: bool = True,
+        metadata: dict[str, str] | None = None,
     ) -> str:
         if not isinstance(data, bytes):
             raise StorageError("Upload data must be bytes")
@@ -115,6 +116,7 @@ class S3BucketClient:
                 Key=object_name,
                 Body=io.BytesIO(data),
                 ContentType=content_type,
+                **({"Metadata": metadata} if metadata else {}),
             )
             if return_flashblade_url:
                 return f"{self.host}/{bucket_name}/{object_name}"

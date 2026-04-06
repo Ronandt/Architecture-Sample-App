@@ -18,7 +18,9 @@ class UserRepository:
     def get_by_sub(self, keycloak_sub: str) -> User | None:
         """Return the user with the given Keycloak subject claim, or None."""
         try:
-            return db.session.query(User).filter(User.keycloak_sub == keycloak_sub).first()
+            return (
+                db.session.query(User).filter(User.keycloak_sub == keycloak_sub).first()
+            )
         except SQLAlchemyError as e:
             db.session.rollback()
             logger.error("Database error on get_by_sub: %s", e)

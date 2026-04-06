@@ -17,7 +17,9 @@ class ItemService:
     # Writes
     # ------------------------------------------------------------------
 
-    def create_item(self, title: str, description: str | None, keycloak_user_id: str) -> ItemResponse:
+    def create_item(
+        self, title: str, description: str | None, keycloak_user_id: str
+    ) -> ItemResponse:
         sanitised_title = title.strip()
         sanitised_description = description.strip() if description else ""
 
@@ -28,10 +30,14 @@ class ItemService:
         if len(sanitised_description) > 100:
             raise InvalidItemDescription("Description exceeds 100 characters")
 
-        item = self.repository.create_item(sanitised_title, sanitised_description, keycloak_user_id)
+        item = self.repository.create_item(
+            sanitised_title, sanitised_description, keycloak_user_id
+        )
         return self._resolve(item)
 
-    def upload_file(self, item_id: int, owner_id: str, filename: str, data: bytes, content_type: str) -> str:
+    def upload_file(
+        self, item_id: int, owner_id: str, filename: str, data: bytes, content_type: str
+    ) -> str:
         """Upload a file for an item, persist the object key, and return a presigned URL."""
         if self.s3_client is None:
             raise ItemUploadError("File uploads are not configured on this server")
@@ -56,7 +62,10 @@ class ItemService:
     # ------------------------------------------------------------------
 
     def get_user_items(self, keycloak_user_id: str) -> list[ItemResponse]:
-        return [self._resolve(item) for item in self.repository.get_items_for_user(keycloak_user_id)]
+        return [
+            self._resolve(item)
+            for item in self.repository.get_items_for_user(keycloak_user_id)
+        ]
 
     def get_item(self, item_id: int, keycloak_user_id: str) -> ItemResponse:
         return self._resolve(self.repository.get_item(item_id, keycloak_user_id))

@@ -8,11 +8,7 @@ export default function ItemCard({ item }: { item: ItemResponse }) {
     <Card className="hover:shadow-md transition-shadow cursor-pointer overflow-hidden">
       <Link to={`/items/${item.id}`}>
         {item.image_url && (
-          <img
-            src={item.image_url}
-            alt={item.title}
-            className="w-full h-36 object-cover"
-          />
+          <img src={item.image_url} alt={item.title} className="w-full h-36 object-cover" />
         )}
         <CardContent className="pt-4">
           <div className="flex justify-between items-center mb-2">

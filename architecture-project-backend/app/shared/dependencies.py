@@ -34,6 +34,7 @@ def get_s3_client() -> S3BucketClient:
 # Auth
 # ------------------------------------------------------------------
 
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_http_bearer),
     adapter: KeycloakAdapter = Depends(get_keycloak_adapter),
@@ -47,11 +48,15 @@ def get_current_user(
     if not ok or claims is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-    allowed_groups = [g.strip() for g in settings.KEYCLOAK_ALLOWED_GROUPS.split(",") if g.strip()]
+    allowed_groups = [
+        g.strip() for g in settings.KEYCLOAK_ALLOWED_GROUPS.split(",") if g.strip()
+    ]
     if allowed_groups:
         user_groups = set(claims.groups)
         if not user_groups.intersection(allowed_groups):
-            raise HTTPException(status_code=403, detail="Access denied: insufficient group membership")
+            raise HTTPException(
+                status_code=403, detail="Access denied: insufficient group membership"
+            )
 
     return claims
 

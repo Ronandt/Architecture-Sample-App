@@ -8,32 +8,32 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     # ── Database ──────────────────────────────────────────────────────────────
-    DATABASE_URL:           str       = "sqlite:///./test.db"
+    DATABASE_URL: str = "sqlite:///./test.db"
 
     # ── Keycloak ──────────────────────────────────────────────────────────────
-    KEYCLOAK_REALM:         str
-    KEYCLOAK_URL:           str
-    KEYCLOAK_CLIENT_ID:     str       = ""
+    KEYCLOAK_REALM: str
+    KEYCLOAK_URL: str
+    KEYCLOAK_CLIENT_ID: str = ""
     KEYCLOAK_CLIENT_SECRET: SecretStr = SecretStr("")
-    KEYCLOAK_CERT_FILEPATH: str       = ""
-    KEYCLOAK_ALLOWED_GROUPS:str       = ""
-    KEYCLOAK_ADMIN_ROLE:    str
-    KEYCLOAK_ADMIN_USERNAME:str       = ""
-    KEYCLOAK_ADMIN_PASSWORD:SecretStr = SecretStr("")
-    KEYCLOAK_TIMEOUT:       int       = 10
+    KEYCLOAK_CERT_FILEPATH: str = ""
+    KEYCLOAK_ALLOWED_GROUPS: str = ""
+    KEYCLOAK_ADMIN_ROLE: str
+    KEYCLOAK_ADMIN_USERNAME: str = ""
+    KEYCLOAK_ADMIN_PASSWORD: SecretStr = SecretStr("")
+    KEYCLOAK_TIMEOUT: int = 10
 
     # ── S3 ────────────────────────────────────────────────────────────────────
-    S3_ENDPOINT:            str       = ""
-    S3_ACCESS_KEY:          SecretStr = SecretStr("")
-    S3_SECRET_KEY:          SecretStr = SecretStr("")
-    S3_SSL_CERT:            str       = ""
-    S3_BUCKET:              str       = ""
-    S3_CONNECT_TIMEOUT:     int       = 5
-    S3_READ_TIMEOUT:        int       = 30
+    S3_ENDPOINT: str = ""
+    S3_ACCESS_KEY: SecretStr = SecretStr("")
+    S3_SECRET_KEY: SecretStr = SecretStr("")
+    S3_SSL_CERT: str = ""
+    S3_BUCKET: str = ""
+    S3_CONNECT_TIMEOUT: int = 5
+    S3_READ_TIMEOUT: int = 30
 
     # ── App ───────────────────────────────────────────────────────────────────
-    CORS_ORIGINS:           list[str] = ["http://localhost:5173"]
-    LOG_LEVEL:              str       = "INFO"
+    CORS_ORIGINS: list[str] = ["http://localhost:5173"]
+    LOG_LEVEL: str = "INFO"
 
     def __str__(self) -> str:
         rows = []
@@ -48,10 +48,7 @@ class Settings(BaseSettings):
 
         header = f"╔═ Settings {'═' * (width - 11)}╗"
         footer = f"╚{'═' * (width)}╝"
-        body = "\n".join(
-            f"║  {name:<{col1}}  {val:<{col2}}  ║"
-            for name, val in rows
-        )
+        body = "\n".join(f"║  {name:<{col1}}  {val:<{col2}}  ║" for name, val in rows)
         return f"\n{header}\n{body}\n{footer}"
 
 

@@ -5,7 +5,10 @@ import json
 import ssl
 import logging
 from keycloak import KeycloakOpenID, KeycloakAdmin, KeycloakOpenIDConnection
-from keycloak.exceptions import KeycloakError as _KCLibError, KeycloakConnectionError as _KCConnError
+from keycloak.exceptions import (
+    KeycloakError as _KCLibError,
+    KeycloakConnectionError as _KCConnError,
+)
 from shared.config import settings
 from shared.schemas import TokenClaims
 from pydantic import SecretStr
@@ -44,16 +47,24 @@ class KeycloakAdapter:
 
     def _fetch_public_key(self, certs_url: str, context: ssl.SSLContext = None) -> str:
         try:
-            with urllib.request.urlopen(certs_url, context=context, timeout=settings.KEYCLOAK_TIMEOUT) as response:
+            with urllib.request.urlopen(
+                certs_url, context=context, timeout=settings.KEYCLOAK_TIMEOUT
+            ) as response:
                 certs = json.loads(response.read())
                 public_key = certs.get("public_key")
                 if public_key is None:
-                    raise KeycloakError("No public key found in Keycloak response", {"url": certs_url})
+                    raise KeycloakError(
+                        "No public key found in Keycloak response", {"url": certs_url}
+                    )
                 return f"-----BEGIN PUBLIC KEY-----{public_key}-----END PUBLIC KEY-----"
         except urllib.error.URLError as e:
             if isinstance(e.reason, TimeoutError):
-                raise KeycloakUnavailable("Keycloak timed out fetching public key", {"url": certs_url})
-            raise KeycloakUnavailable("Could not reach Keycloak", {"url": certs_url, "reason": str(e)})
+                raise KeycloakUnavailable(
+                    "Keycloak timed out fetching public key", {"url": certs_url}
+                )
+            raise KeycloakUnavailable(
+                "Could not reach Keycloak", {"url": certs_url, "reason": str(e)}
+            )
 
     # ------------------------------------------------------------------
     # Public key / token verification
@@ -77,7 +88,10 @@ class KeycloakAdapter:
         certs_url = f"{url}/realms/{realm}"
 
         if not cert:
-            logger.warning("No SSL cert configured — connecting without verification to %s", certs_url)
+            logger.warning(
+                "No SSL cert configured — connecting without verification to %s",
+                certs_url,
+            )
             self._public_key_cache = self._fetch_public_key(certs_url)
             return self._public_key_cache
 
@@ -96,11 +110,15 @@ class KeycloakAdapter:
         for attempt, force_refresh in enumerate([False, True]):
             try:
                 public_key = self.get_public_key(force_refresh=force_refresh)
-                raw_claims = jwt.decode(bearer, public_key, algorithms=["RS256"], audience="account")
+                raw_claims = jwt.decode(
+                    bearer, public_key, algorithms=["RS256"], audience="account"
+                )
                 return True, TokenClaims.model_validate(raw_claims)
             except jwt.exceptions.InvalidSignatureError:
                 if attempt == 0:
-                    logger.warning("Token signature invalid — refetching public key (possible rotation)")
+                    logger.warning(
+                        "Token signature invalid — refetching public key (possible rotation)"
+                    )
                     continue
                 logger.warning("Token signature still invalid after key refresh")
                 return False, None
@@ -250,7 +268,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to get user", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to get user", {"user_id": user_id, "detail": str(e)}
+            )
 
     def get_user_id(self, username: str) -> str | None:
         """Resolve a username to its Keycloak user ID."""
@@ -259,7 +279,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to resolve user ID", {"username": username, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to resolve user ID", {"username": username, "detail": str(e)}
+            )
 
     def update_user(self, user_id: str, payload: dict) -> None:
         """Update user attributes (e.g. firstName, email, enabled)."""
@@ -268,7 +290,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to update user", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to update user", {"user_id": user_id, "detail": str(e)}
+            )
 
     def delete_user(self, user_id: str) -> None:
         """Permanently delete a user from the realm."""
@@ -277,16 +301,24 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to delete user", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to delete user", {"user_id": user_id, "detail": str(e)}
+            )
 
-    def set_user_password(self, user_id: str, password: str, temporary: bool = False) -> None:
+    def set_user_password(
+        self, user_id: str, password: str, temporary: bool = False
+    ) -> None:
         """Set or reset a user's password. temporary=True forces change on next login."""
         try:
-            self._admin.set_user_password(user_id=user_id, password=password, temporary=temporary)
+            self._admin.set_user_password(
+                user_id=user_id, password=password, temporary=temporary
+            )
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to set password", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to set password", {"user_id": user_id, "detail": str(e)}
+            )
 
     def get_credentials(self, user_id: str) -> list[dict]:
         """Return all credentials registered for a user."""
@@ -295,16 +327,22 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to fetch credentials", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to fetch credentials", {"user_id": user_id, "detail": str(e)}
+            )
 
     def get_credential(self, user_id: str, credential_id: str) -> dict:
         """Return a specific credential by ID."""
         try:
-            return self._admin.get_credential(user_id=user_id, credential_id=credential_id)
+            return self._admin.get_credential(
+                user_id=user_id, credential_id=credential_id
+            )
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to fetch credential", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to fetch credential", {"user_id": user_id, "detail": str(e)}
+            )
 
     def delete_credential(self, user_id: str, credential_id: str) -> None:
         """Delete a specific credential from a user."""
@@ -313,7 +351,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to delete credential", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to delete credential", {"user_id": user_id, "detail": str(e)}
+            )
 
     # ------------------------------------------------------------------
     # User actions
@@ -326,7 +366,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to send verify email", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to send verify email", {"user_id": user_id, "detail": str(e)}
+            )
 
     def send_update_account(self, user_id: str, payload: list[str]) -> None:
         """Send a required-action email (e.g. ['UPDATE_PASSWORD', 'VERIFY_EMAIL'])."""
@@ -335,7 +377,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to send account update", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to send account update", {"user_id": user_id, "detail": str(e)}
+            )
 
     def get_consents(self, user_id: str) -> list[dict]:
         """Return OAuth2 consents granted by the user."""
@@ -344,7 +388,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to fetch consents", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to fetch consents", {"user_id": user_id, "detail": str(e)}
+            )
 
     def get_user_sessions(self, user_id: str) -> list[dict]:
         """Return active sessions for a user."""
@@ -353,7 +399,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to fetch sessions", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to fetch sessions", {"user_id": user_id, "detail": str(e)}
+            )
 
     # ------------------------------------------------------------------
     # Realm roles
@@ -375,7 +423,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to fetch realm role", {"role": role_name, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to fetch realm role", {"role": role_name, "detail": str(e)}
+            )
 
     def create_realm_role(self, payload: dict) -> str:
         """Create a realm role (payload must include 'name')."""
@@ -393,7 +443,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to delete realm role", {"role": role_name, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to delete realm role", {"role": role_name, "detail": str(e)}
+            )
 
     def assign_realm_roles(self, user_id: str, roles: list[dict]) -> None:
         """Assign realm roles to a user (roles is a list of role representation dicts)."""
@@ -402,7 +454,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to assign realm roles", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to assign realm roles", {"user_id": user_id, "detail": str(e)}
+            )
 
     def remove_realm_roles(self, user_id: str, roles: list[dict]) -> None:
         """Remove realm roles from a user."""
@@ -411,7 +465,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to remove realm roles", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to remove realm roles", {"user_id": user_id, "detail": str(e)}
+            )
 
     def get_user_realm_roles(self, user_id: str) -> list[dict]:
         """Return realm roles assigned to a user."""
@@ -420,7 +476,10 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to fetch user realm roles", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to fetch user realm roles",
+                {"user_id": user_id, "detail": str(e)},
+            )
 
     # ------------------------------------------------------------------
     # Client roles
@@ -433,7 +492,10 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to fetch client roles", {"client_id": client_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to fetch client roles",
+                {"client_id": client_id, "detail": str(e)},
+            )
 
     def get_client_role(self, client_id: str, role_name: str) -> dict:
         """Return a specific client role by name."""
@@ -442,34 +504,54 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to fetch client role", {"client_id": client_id, "role": role_name, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to fetch client role",
+                {"client_id": client_id, "role": role_name, "detail": str(e)},
+            )
 
-    def assign_client_roles(self, user_id: str, client_id: str, roles: list[dict]) -> None:
+    def assign_client_roles(
+        self, user_id: str, client_id: str, roles: list[dict]
+    ) -> None:
         """Assign client roles to a user."""
         try:
-            self._admin.assign_client_role(user_id=user_id, client_id=client_id, roles=roles)
+            self._admin.assign_client_role(
+                user_id=user_id, client_id=client_id, roles=roles
+            )
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to assign client roles", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to assign client roles", {"user_id": user_id, "detail": str(e)}
+            )
 
     def get_user_client_roles(self, user_id: str, client_id: str) -> list[dict]:
         """Return client roles assigned to a user."""
         try:
-            return self._admin.get_client_roles_of_user(user_id=user_id, client_id=client_id)
+            return self._admin.get_client_roles_of_user(
+                user_id=user_id, client_id=client_id
+            )
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to fetch user client roles", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to fetch user client roles",
+                {"user_id": user_id, "detail": str(e)},
+            )
 
-    def remove_client_roles(self, user_id: str, client_id: str, roles: list[dict]) -> None:
+    def remove_client_roles(
+        self, user_id: str, client_id: str, roles: list[dict]
+    ) -> None:
         """Remove client roles from a user."""
         try:
-            self._admin.delete_client_roles_of_user(user_id=user_id, client_id=client_id, roles=roles)
+            self._admin.delete_client_roles_of_user(
+                user_id=user_id, client_id=client_id, roles=roles
+            )
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to remove client roles", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to remove client roles", {"user_id": user_id, "detail": str(e)}
+            )
 
     # ------------------------------------------------------------------
     # Groups
@@ -491,7 +573,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to fetch group", {"group_id": group_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to fetch group", {"group_id": group_id, "detail": str(e)}
+            )
 
     def get_group_by_path(self, path: str) -> dict:
         """Return a group by its path (e.g. '/admins/devops')."""
@@ -500,7 +584,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to fetch group by path", {"path": path, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to fetch group by path", {"path": path, "detail": str(e)}
+            )
 
     def create_group(self, payload: dict) -> str:
         """Create a group and return its ID."""
@@ -518,7 +604,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to update group", {"group_id": group_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to update group", {"group_id": group_id, "detail": str(e)}
+            )
 
     def delete_group(self, group_id: str) -> None:
         """Delete a group from the realm."""
@@ -527,7 +615,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to delete group", {"group_id": group_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to delete group", {"group_id": group_id, "detail": str(e)}
+            )
 
     def add_user_to_group(self, user_id: str, group_id: str) -> None:
         """Add a user to a group."""
@@ -536,7 +626,10 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to add user to group", {"user_id": user_id, "group_id": group_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to add user to group",
+                {"user_id": user_id, "group_id": group_id, "detail": str(e)},
+            )
 
     def remove_user_from_group(self, user_id: str, group_id: str) -> None:
         """Remove a user from a group."""
@@ -545,7 +638,10 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to remove user from group", {"user_id": user_id, "group_id": group_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to remove user from group",
+                {"user_id": user_id, "group_id": group_id, "detail": str(e)},
+            )
 
     def get_user_groups(self, user_id: str) -> list[dict]:
         """Return the groups a user belongs to."""
@@ -554,7 +650,9 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to fetch user groups", {"user_id": user_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to fetch user groups", {"user_id": user_id, "detail": str(e)}
+            )
 
     def get_group_members(self, group_id: str) -> list[dict]:
         """Return all members of a group."""
@@ -563,7 +661,10 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to fetch group members", {"group_id": group_id, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to fetch group members",
+                {"group_id": group_id, "detail": str(e)},
+            )
 
     # ------------------------------------------------------------------
     # Clients
@@ -585,7 +686,10 @@ class KeycloakAdminAdapter:
         except _KCConnError:
             raise KeycloakUnavailable(_KEYCLOAK_UNREACHABLE)
         except _KCLibError as e:
-            raise KeycloakError("Failed to resolve client ID", {"client_name": client_name, "detail": str(e)})
+            raise KeycloakError(
+                "Failed to resolve client ID",
+                {"client_name": client_name, "detail": str(e)},
+            )
 
     # ------------------------------------------------------------------
     # Realm

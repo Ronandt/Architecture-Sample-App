@@ -87,7 +87,7 @@ Contains everything the application needs to start — auth, the HTTP client, gl
 
 #### `src/core/api`
 
-Defines the shared Axios client used by all feature services. This is the single place where base URL configuration, authentication headers, and request/response interceptors are set up. Files here describe only *how* requests are made — no business logic, response transformation, or UI behaviour belongs here.
+Defines the shared Axios client used by all feature services. This is the single place where base URL configuration, authentication headers, and request/response interceptors are set up. Files here describe only _how_ requests are made — no business logic, response transformation, or UI behaviour belongs here.
 
 #### `src/core/auth`
 
@@ -123,7 +123,7 @@ Page-level components that correspond to application routes. Pages manage view-l
 
 UI components scoped to the feature — cards, forms, tables, and modals that are specific to this domain. Components should be presentational wherever possible, receiving data and callbacks via props. They must not perform API calls or contain business logic.
 
-#### `src/features/<feature>/hooks` *(optional)*
+#### `src/features/<feature>/hooks` _(optional)_
 
 Custom hooks that sit between the service layer and the UI. They encapsulate data fetching, caching, mutation handling, error state, and loading state — keeping pages and components focused on rendering. TanStack Query hooks belong here. This folder can be omitted for features with no meaningful state interactions.
 
@@ -147,15 +147,15 @@ Small, pure, stateless helper functions used across multiple features — format
 
 ---
 
-### `src/shared/components/ui` *(shadcn/ui — do not edit manually)*
+### `src/shared/components/ui` _(shadcn/ui — do not edit manually)_
 
 Auto-generated shadcn/ui primitive components — `Button`, `Card`, `Dialog`, `Table`, and so on. These are base-level building blocks that features and `shared/components` compose into higher-level UI. New primitives are added by running `npx shadcn add <component>` — the output path is configured in `components.json` and will land here automatically. Do not hand-edit these files.
 
-### `src/shared/hooks/use-mobile.ts` *(shadcn/ui — do not edit manually)*
+### `src/shared/hooks/use-mobile.ts` _(shadcn/ui — do not edit manually)_
 
 Auto-generated shadcn/ui hook. Managed by the shadcn CLI via the `hooks` alias in `components.json`.
 
-### `src/shared/lib` *(shadcn/ui — do not edit manually)*
+### `src/shared/lib` _(shadcn/ui — do not edit manually)_
 
 Contains `utils.ts`, the shadcn/ui utility file that exposes the `cn` helper for merging Tailwind class names. Managed by the shadcn CLI via the `lib` alias in `components.json`.
 

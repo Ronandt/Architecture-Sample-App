@@ -15,12 +15,12 @@
 if (typeof window !== 'undefined') {
   const cfg = ((window as Record<string, unknown>).__APP_CONFIG__ ?? {}) as Record<string, string>
   Object.assign(import.meta.env, {
-    VITE_KEYCLOAK_URL:       cfg['KEYCLOAK_URL']       ?? import.meta.env.VITE_KEYCLOAK_URL,
-    VITE_KEYCLOAK_REALM:     cfg['KEYCLOAK_REALM']     ?? import.meta.env.VITE_KEYCLOAK_REALM,
+    VITE_KEYCLOAK_URL: cfg['KEYCLOAK_URL'] ?? import.meta.env.VITE_KEYCLOAK_URL,
+    VITE_KEYCLOAK_REALM: cfg['KEYCLOAK_REALM'] ?? import.meta.env.VITE_KEYCLOAK_REALM,
     VITE_KEYCLOAK_CLIENT_ID: cfg['KEYCLOAK_CLIENT_ID'] ?? import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
-    VITE_API_URL:            cfg['API_URL']             ?? import.meta.env.VITE_API_URL,
-    VITE_ALLOWED_GROUPS:     cfg['ALLOWED_GROUPS']      ?? import.meta.env.VITE_ALLOWED_GROUPS,
-    VITE_ADMIN_ROLE:         cfg['ADMIN_ROLE']          ?? import.meta.env.VITE_ADMIN_ROLE,
+    VITE_API_URL: cfg['API_URL'] ?? import.meta.env.VITE_API_URL,
+    VITE_ALLOWED_GROUPS: cfg['ALLOWED_GROUPS'] ?? import.meta.env.VITE_ALLOWED_GROUPS,
+    VITE_ADMIN_ROLE: cfg['ADMIN_ROLE'] ?? import.meta.env.VITE_ADMIN_ROLE,
   })
 }
 
@@ -36,5 +36,5 @@ createRoot(document.getElementById('root')!).render(
     <AppProviders>
       <RouterProvider router={router} />
     </AppProviders>
-  </StrictMode>,
+  </StrictMode>
 )

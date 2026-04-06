@@ -40,7 +40,9 @@ export default function ItemDetailPage() {
 
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
-      <button onClick={() => navigate(-1)} className="text-sm underline text-blue-600 block mb-4">← Back</button>
+      <button onClick={() => navigate(-1)} className="text-sm underline text-blue-600 block mb-4">
+        ← Back
+      </button>
       <Card>
         <CardContent className="pt-4 flex flex-col gap-3">
           <div className="flex justify-between items-center">
@@ -68,5 +70,3 @@ export default function ItemDetailPage() {
     </div>
   )
 }
-
-

@@ -5,7 +5,12 @@ import { Input } from '@/shared/components/ui/input'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { Alert, AlertDescription } from '@/shared/components/ui/alert'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
 } from '@/shared/components/ui/dialog'
 import { useItems, useCreateItem } from '../hooks/useItems'
 import ItemCard from '../components/ItemCard'
@@ -60,12 +65,16 @@ export default function DashboardPage() {
               </div>
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button variant="outline" type="button">Cancel</Button>
+                  <Button variant="outline" type="button">
+                    Cancel
+                  </Button>
                 </DialogClose>
                 <Button type="submit" disabled={createItem.isPending}>
                   {createItem.isPending ? (
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  ) : 'Create'}
+                  ) : (
+                    'Create'
+                  )}
                 </Button>
               </DialogFooter>
             </div>
@@ -87,14 +96,18 @@ export default function DashboardPage() {
 
       {Array.isArray(items) && items.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {items.map((item) => <ItemCard key={item.id} item={item} />)}
+          {items.map((item) => (
+            <ItemCard key={item.id} item={item} />
+          ))}
         </div>
       )}
 
       {Array.isArray(items) && items.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-4 py-16">
           <h2 className="text-xl font-medium text-muted-foreground">No items yet</h2>
-          <Button variant="outline" onClick={() => setOpened(true)}>Create your first item</Button>
+          <Button variant="outline" onClick={() => setOpened(true)}>
+            Create your first item
+          </Button>
         </div>
       )}
     </div>

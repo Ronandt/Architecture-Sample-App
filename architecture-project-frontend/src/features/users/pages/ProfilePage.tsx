@@ -37,7 +37,9 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
-      <button onClick={() => navigate(-1)} className="text-sm underline text-blue-600 block mb-4">← Back</button>
+      <button onClick={() => navigate(-1)} className="text-sm underline text-blue-600 block mb-4">
+        ← Back
+      </button>
       <h1 className="text-2xl font-bold mb-4">Profile</h1>
       <Card>
         <CardContent className="pt-4 flex flex-col gap-3">
@@ -56,13 +58,19 @@ export default function ProfilePage() {
           <div className="flex gap-3 items-center">
             <span className="font-semibold">Roles</span>
             <div className="flex gap-2 flex-wrap">
-              {profile.roles.map((r) => <Badge key={r} variant="secondary">{r}</Badge>)}
+              {profile.roles.map((r) => (
+                <Badge key={r} variant="secondary">
+                  {r}
+                </Badge>
+              ))}
             </div>
           </div>
           <Button variant="outline" onClick={handleSync} disabled={sync.isPending}>
             {sync.isPending ? (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            ) : 'Sync profile to database'}
+            ) : (
+              'Sync profile to database'
+            )}
           </Button>
         </CardContent>
       </Card>

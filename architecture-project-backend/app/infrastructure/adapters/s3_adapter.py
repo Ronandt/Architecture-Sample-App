@@ -30,7 +30,9 @@ class S3BucketClient:
                 self.cert_path = cert
                 logger.info("Using SSL Certificate from: %s", self.cert_path)
             else:
-                logger.warning("Certificate not found at %s. Defaulting to standard SSL.", cert)
+                logger.warning(
+                    "Certificate not found at %s. Defaulting to standard SSL.", cert
+                )
 
         self.__client = boto3.client(
             "s3",
@@ -125,7 +127,9 @@ class S3BucketClient:
             raise StorageTimeout("Upload timed out", {"object": object_name})
         except Exception as e:
             logger.error("Upload failed for '%s': %s", object_name, e)
-            raise StorageError("Upload failed", {"object": object_name, "reason": str(e)})
+            raise StorageError(
+                "Upload failed", {"object": object_name, "reason": str(e)}
+            )
 
     def delete(self, object_name: str, bucket_name=DEFAULT_BUCKET_NAME) -> None:
         try:
@@ -135,7 +139,9 @@ class S3BucketClient:
             raise StorageTimeout("Delete timed out", {"object": object_name})
         except Exception as e:
             logger.error("Delete failed for '%s': %s", object_name, e)
-            raise StorageError("Delete failed", {"object": object_name, "reason": str(e)})
+            raise StorageError(
+                "Delete failed", {"object": object_name, "reason": str(e)}
+            )
 
     def generate_presigned_url(
         self, object_key: str, expiration: int = 3600, bucket_name=DEFAULT_BUCKET_NAME
@@ -148,12 +154,19 @@ class S3BucketClient:
             )
         except (ConnectTimeoutError, ReadTimeoutError) as e:
             logger.error("Presigned URL timed out for '%s': %s", object_key, e)
-            raise StorageTimeout("Presigned URL generation timed out", {"object": object_key})
+            raise StorageTimeout(
+                "Presigned URL generation timed out", {"object": object_key}
+            )
         except Exception as e:
             logger.error("Presigned URL generation failed for '%s': %s", object_key, e)
-            raise StorageError("Failed to generate presigned URL", {"object": object_key, "reason": str(e)})
+            raise StorageError(
+                "Failed to generate presigned URL",
+                {"object": object_key, "reason": str(e)},
+            )
 
-    def list_objects(self, prefix: str = "", bucket_name=DEFAULT_BUCKET_NAME) -> list[str]:
+    def list_objects(
+        self, prefix: str = "", bucket_name=DEFAULT_BUCKET_NAME
+    ) -> list[str]:
         """List object keys in a bucket, optionally filtered by prefix."""
         try:
             response = self.__client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
@@ -163,7 +176,9 @@ class S3BucketClient:
             raise StorageTimeout("List objects timed out", {"prefix": prefix})
         except Exception as e:
             logger.error("List objects failed: %s", e)
-            raise StorageError("Failed to list objects", {"prefix": prefix, "reason": str(e)})
+            raise StorageError(
+                "Failed to list objects", {"prefix": prefix, "reason": str(e)}
+            )
 
     def copy_object(
         self, source_key: str, dest_key: str, bucket_name=DEFAULT_BUCKET_NAME
@@ -176,11 +191,18 @@ class S3BucketClient:
                 Key=dest_key,
             )
         except (ConnectTimeoutError, ReadTimeoutError) as e:
-            logger.error("Copy timed out from '%s' to '%s': %s", source_key, dest_key, e)
-            raise StorageTimeout("Copy timed out", {"source": source_key, "dest": dest_key})
+            logger.error(
+                "Copy timed out from '%s' to '%s': %s", source_key, dest_key, e
+            )
+            raise StorageTimeout(
+                "Copy timed out", {"source": source_key, "dest": dest_key}
+            )
         except Exception as e:
             logger.error("Copy failed from '%s' to '%s': %s", source_key, dest_key, e)
-            raise StorageError("Copy failed", {"source": source_key, "dest": dest_key, "reason": str(e)})
+            raise StorageError(
+                "Copy failed",
+                {"source": source_key, "dest": dest_key, "reason": str(e)},
+            )
 
     def get_object(self, key: str, bucket_name=DEFAULT_BUCKET_NAME) -> bytes:
         """Download an object and return its content as bytes."""
@@ -192,7 +214,9 @@ class S3BucketClient:
             raise StorageTimeout("Get object timed out", {"object": key})
         except Exception as e:
             logger.error("Get object failed for '%s': %s", key, e)
-            raise StorageError("Failed to get object", {"object": key, "reason": str(e)})
+            raise StorageError(
+                "Failed to get object", {"object": key, "reason": str(e)}
+            )
 
     def object_exists(self, key: str, bucket_name=DEFAULT_BUCKET_NAME) -> bool:
         """Return True if the key exists in the bucket (HEAD request)."""
@@ -216,7 +240,9 @@ class S3BucketClient:
             raise StorageTimeout("Batch delete timed out", {"count": len(keys)})
         except Exception as e:
             logger.error("Batch delete failed: %s", e)
-            raise StorageError("Batch delete failed", {"count": len(keys), "reason": str(e)})
+            raise StorageError(
+                "Batch delete failed", {"count": len(keys), "reason": str(e)}
+            )
 
     def get_object_metadata(self, key: str, bucket_name=DEFAULT_BUCKET_NAME) -> dict:
         """
@@ -239,10 +265,14 @@ class S3BucketClient:
             code = e.response["Error"]["Code"]
             if code == "404":
                 raise StorageError("Object not found", {"object": key})
-            raise StorageError("Failed to get metadata", {"object": key, "reason": str(e)})
+            raise StorageError(
+                "Failed to get metadata", {"object": key, "reason": str(e)}
+            )
         except Exception as e:
             logger.error("Metadata fetch failed for '%s': %s", key, e)
-            raise StorageError("Failed to get metadata", {"object": key, "reason": str(e)})
+            raise StorageError(
+                "Failed to get metadata", {"object": key, "reason": str(e)}
+            )
 
     def generate_presigned_upload_url(
         self,
@@ -259,16 +289,27 @@ class S3BucketClient:
         try:
             return self.__client.generate_presigned_url(
                 "put_object",
-                Params={"Bucket": bucket_name, "Key": object_key, "ContentType": content_type},
+                Params={
+                    "Bucket": bucket_name,
+                    "Key": object_key,
+                    "ContentType": content_type,
+                },
                 ExpiresIn=expiration,
                 HttpMethod="PUT",
             )
         except (ConnectTimeoutError, ReadTimeoutError) as e:
             logger.error("Presigned upload URL timed out for '%s': %s", object_key, e)
-            raise StorageTimeout("Presigned upload URL generation timed out", {"object": object_key})
+            raise StorageTimeout(
+                "Presigned upload URL generation timed out", {"object": object_key}
+            )
         except Exception as e:
-            logger.error("Presigned upload URL generation failed for '%s': %s", object_key, e)
-            raise StorageError("Failed to generate presigned upload URL", {"object": object_key, "reason": str(e)})
+            logger.error(
+                "Presigned upload URL generation failed for '%s': %s", object_key, e
+            )
+            raise StorageError(
+                "Failed to generate presigned upload URL",
+                {"object": object_key, "reason": str(e)},
+            )
 
     def move_object(
         self, source_key: str, dest_key: str, bucket_name=DEFAULT_BUCKET_NAME
@@ -319,7 +360,10 @@ class S3BucketClient:
             raise StorageTimeout("Set lifecycle timed out", {"bucket": bucket_name})
         except Exception as e:
             logger.error("Set lifecycle failed: %s", e)
-            raise StorageError("Failed to set lifecycle policy", {"bucket": bucket_name, "reason": str(e)})
+            raise StorageError(
+                "Failed to set lifecycle policy",
+                {"bucket": bucket_name, "reason": str(e)},
+            )
 
     # ------------------------------------------------------------------
     # Internal helpers

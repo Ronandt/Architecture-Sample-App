@@ -16,7 +16,10 @@ export async function createItem(payload: ItemCreatePayload): Promise<ItemRespon
   return data
 }
 
-export async function uploadItemFile(itemId: string | number, file: File): Promise<{ url: string }> {
+export async function uploadItemFile(
+  itemId: string | number,
+  file: File
+): Promise<{ url: string }> {
   const form = new FormData()
   form.append('file', file)
   const { data } = await apiClient.post<{ url: string }>(`/items/${itemId}/upload`, form, {

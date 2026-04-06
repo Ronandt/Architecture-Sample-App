@@ -18,15 +18,26 @@ function AppLayout() {
 
 export const router = createBrowserRouter([
   {
-    element: <ProtectedRoute><AppLayout /></ProtectedRoute>,
+    element: (
+      <ProtectedRoute>
+        <AppLayout />
+      </ProtectedRoute>
+    ),
     children: [
       { path: '/', element: <DashboardPage /> },
       { path: '/items/:id', element: <ItemDetailPage /> },
       { path: '/profile', element: <ProfilePage /> },
-      { path: '/admin/users', element: <AdminRoute><AdminUsersPage /></AdminRoute> },
+      {
+        path: '/admin/users',
+        element: (
+          <AdminRoute>
+            <AdminUsersPage />
+          </AdminRoute>
+        ),
+      },
     ],
   },
 ])
 
-//Outlet is where the children are loaded along with the navbar 
+//Outlet is where the children are loaded along with the navbar
 //The Protected Route is where authentication is guarded

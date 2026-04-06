@@ -45,5 +45,7 @@ async def upload_item_file(
     service: ItemService = Depends(get_item_service),
 ):
     data = await file.read()
-    url = service.upload_file(item_id, claims.sub, file.filename, data, file.content_type)
+    url = service.upload_file(
+        item_id, claims.sub, file.filename, data, file.content_type
+    )
     return ItemUploadResponse(url=url)

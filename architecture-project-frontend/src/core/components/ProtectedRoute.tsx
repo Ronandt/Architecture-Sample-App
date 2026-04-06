@@ -19,7 +19,9 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4">
         <h1 className="text-2xl font-semibold">Access Denied</h1>
-        <p className="text-muted-foreground">You do not have permission to access this application.</p>
+        <p className="text-muted-foreground">
+          You do not have permission to access this application.
+        </p>
         <button
           onClick={logout}
           className="px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90"

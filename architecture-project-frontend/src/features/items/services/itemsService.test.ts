@@ -43,7 +43,10 @@ describe('createItem', () => {
     vi.mocked(apiClient.post).mockResolvedValueOnce({ data: mockItem })
     const result = await createItem({ title: 'Test Item', description: 'A description' })
     expect(result).toEqual(mockItem)
-    expect(apiClient.post).toHaveBeenCalledWith('/items', { title: 'Test Item', description: 'A description' })
+    expect(apiClient.post).toHaveBeenCalledWith('/items', {
+      title: 'Test Item',
+      description: 'A description',
+    })
   })
 
   it('posts without description', async () => {

@@ -43,10 +43,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // state from the already-completed init rather than returning early with
     // the reset initial state (which would leave isLoading=true forever).
     if (keycloak.didInitialize) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAuthenticated(keycloak.authenticated ?? false)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAuthorized(checkAuthorized(keycloak.tokenParsed))
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAdmin(checkAdmin(keycloak.tokenParsed))
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUserInfo(keycloak.tokenParsed ?? null)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsLoading(false)
       return
     }

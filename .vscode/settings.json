@@ -13,5 +13,6 @@
   },
 
   "flake8.enabled": true,
+  "flake8.args": ["--config=${workspaceFolder}/architecture-project-backend/.flake8"],
   "eslint.enable": true
 }

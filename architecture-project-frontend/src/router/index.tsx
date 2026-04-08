@@ -6,6 +6,7 @@ import DashboardPage from '../features/items/pages/DashboardPage'
 import ItemDetailPage from '../features/items/pages/ItemDetailPage'
 import ProfilePage from '../features/users/pages/ProfilePage'
 import AdminUsersPage from '../features/users/pages/AdminUsersPage'
+import ShowcasePage from '../features/showcase/pages/ShowcasePage'
 
 function AppLayout() {
   return (
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
       { path: '/', element: <DashboardPage /> },
       { path: '/items/:id', element: <ItemDetailPage /> },
       { path: '/profile', element: <ProfilePage /> },
+      { path: '/showcase', element: <ShowcasePage /> },
       {
         path: '/admin/users',
         element: (

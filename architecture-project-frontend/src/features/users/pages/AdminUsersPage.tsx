@@ -1,5 +1,7 @@
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Alert, AlertDescription } from '@/shared/components/ui/alert'
+import { Spinner } from '@/shared/components/ui/spinner'
+import { PageHeader } from '@/shared/components/PageHeader'
 import { useAllUsers } from '../hooks/useUser'
 
 export default function AdminUsersPage() {
@@ -8,7 +10,7 @@ export default function AdminUsersPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <Spinner className="h-8 w-8" />
       </div>
     )
   }
@@ -25,7 +27,7 @@ export default function AdminUsersPage() {
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">All Users</h1>
+      <PageHeader title="All Users" description={`${users.length} registered users`} />
       <div className="flex flex-col gap-3">
         {users.map((user) => (
           <Card key={user.id}>

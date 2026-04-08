@@ -202,6 +202,35 @@ export default function ShowcasePage() {
             }
           />
 
+          {/* ── COLORS ──────────────────────────────────────────────────────── */}
+          <Section title="Color Tokens">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {[
+                { name: 'background', bg: 'bg-background', fg: 'text-foreground', label: 'Background' },
+                { name: 'foreground', bg: 'bg-foreground', fg: 'text-background', label: 'Foreground' },
+                { name: 'primary', bg: 'bg-primary', fg: 'text-primary-foreground', label: 'Primary' },
+                { name: 'primary-foreground', bg: 'bg-primary-foreground', fg: 'text-primary', label: 'Primary FG' },
+                { name: 'secondary', bg: 'bg-secondary', fg: 'text-secondary-foreground', label: 'Secondary' },
+                { name: 'muted', bg: 'bg-muted', fg: 'text-muted-foreground', label: 'Muted' },
+                { name: 'accent', bg: 'bg-accent', fg: 'text-accent-foreground', label: 'Accent' },
+                { name: 'destructive', bg: 'bg-destructive', fg: 'text-white', label: 'Destructive' },
+                { name: 'card', bg: 'bg-card', fg: 'text-card-foreground', label: 'Card' },
+                { name: 'popover', bg: 'bg-popover', fg: 'text-popover-foreground', label: 'Popover' },
+                { name: 'border', bg: 'bg-border', fg: 'text-foreground', label: 'Border' },
+                { name: 'input', bg: 'bg-input', fg: 'text-foreground', label: 'Input' },
+                { name: 'ring', bg: 'bg-ring', fg: 'text-background', label: 'Ring' },
+              ].map(({ bg, fg, label, name }) => (
+                <div key={name} className="flex flex-col overflow-hidden rounded-md border">
+                  <div className={`h-12 ${bg}`} />
+                  <div className="px-2 py-1.5 text-xs">
+                    <div className="font-medium">{label}</div>
+                    <div className="text-muted-foreground font-mono">--{name}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Section>
+
           {/* ── BREADCRUMB ──────────────────────────────────────────────────── */}
           <Section title="Breadcrumb">
             <Breadcrumb>

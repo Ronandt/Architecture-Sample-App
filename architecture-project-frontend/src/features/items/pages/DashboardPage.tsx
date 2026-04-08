@@ -4,6 +4,8 @@ import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { Alert, AlertDescription } from '@/shared/components/ui/alert'
+import { Field, FieldLabel } from '@/shared/components/ui/field'
+import { Spinner } from '@/shared/components/ui/spinner'
 import {
   Dialog,
   DialogContent,
@@ -12,6 +14,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/shared/components/ui/dialog'
+import { PageHeader } from '@/shared/components/PageHeader'
 import { useItems, useCreateItem } from '../hooks/useItems'
 import ItemCard from '../components/ItemCard'
 import type { ItemCreatePayload } from '../../../core/types/api'
@@ -36,10 +39,10 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">My Items</h1>
-        <Button onClick={() => setOpened(true)}>New Item</Button>
-      </div>
+      <PageHeader
+        title="My Items"
+        actions={<Button onClick={() => setOpened(true)}>New Item</Button>}
+      />
 
       <Dialog open={opened} onOpenChange={setOpened}>
         <DialogContent className="max-w-md">
@@ -48,21 +51,21 @@ export default function DashboardPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-4 mt-2">
-              <div>
-                <label className="text-sm font-medium mb-1 block">Title</label>
+              <Field>
+                <FieldLabel>Title</FieldLabel>
                 <Input
                   required
                   value={form.title}
                   onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                 />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Description</label>
+              </Field>
+              <Field>
+                <FieldLabel>Description</FieldLabel>
                 <Textarea
                   value={form.description ?? ''}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 />
-              </div>
+              </Field>
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline" type="button">
@@ -70,11 +73,7 @@ export default function DashboardPage() {
                   </Button>
                 </DialogClose>
                 <Button type="submit" disabled={createItem.isPending}>
-                  {createItem.isPending ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  ) : (
-                    'Create'
-                  )}
+                  {createItem.isPending ? <Spinner className="h-4 w-4" /> : 'Create'}
                 </Button>
               </DialogFooter>
             </div>

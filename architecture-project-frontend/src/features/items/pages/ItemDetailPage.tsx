@@ -2,7 +2,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Badge } from '@/shared/components/ui/badge'
+import { Button } from '@/shared/components/ui/button'
 import { Alert, AlertDescription } from '@/shared/components/ui/alert'
+import { Spinner } from '@/shared/components/ui/spinner'
+import { PageHeader } from '@/shared/components/PageHeader'
 import { useItem, useUploadItemFile } from '../hooks/useItems'
 import { ItemImageUpload } from '../components/ItemImageUpload'
 
@@ -23,7 +26,7 @@ export default function ItemDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <Spinner className="h-8 w-8" />
       </div>
     )
   }
@@ -40,15 +43,19 @@ export default function ItemDetailPage() {
 
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
-      <button onClick={() => navigate(-1)} className="text-sm underline text-blue-600 block mb-4">
-        ← Back
-      </button>
+      <PageHeader
+        title={item.title}
+        actions={
+          <>
+            <Badge variant="secondary">#{item.id}</Badge>
+            <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
+              ← Back
+            </Button>
+          </>
+        }
+      />
       <Card>
         <CardContent className="pt-4 flex flex-col gap-3">
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-semibold">{item.title}</h1>
-            <Badge variant="secondary">#{item.id}</Badge>
-          </div>
           <p className="text-muted-foreground">{item.description ?? 'No description'}</p>
           <p className="text-xs text-muted-foreground">Owner: {item.owner_id}</p>
 

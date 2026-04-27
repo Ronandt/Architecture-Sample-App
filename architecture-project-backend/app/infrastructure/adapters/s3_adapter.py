@@ -98,13 +98,17 @@ class S3BucketClient:
     # Object operations
     # ------------------------------------------------------------------
 
+    def _build_object_url(self, bucket_name: str, object_name: str) -> str:
+        if self.host and "amazonaws.com" not in self.host:
+            return f"{self.host}/{bucket_name}/{object_name}"
+        return f"https://{bucket_name}.s3.amazonaws.com/{object_name}"
+
     def upload(
         self,
         object_name: str,
         data: bytes,
         content_type: str = "application/octet-stream",
         bucket_name=DEFAULT_BUCKET_NAME,
-        return_flashblade_url: bool = True,
         metadata: dict[str, str] | None = None,
     ) -> str:
         if not isinstance(data, bytes):
@@ -118,9 +122,7 @@ class S3BucketClient:
                 ContentType=content_type,
                 **({"Metadata": metadata} if metadata else {}),
             )
-            if return_flashblade_url:
-                return f"{self.host}/{bucket_name}/{object_name}"
-            return f"https://{bucket_name}.s3.amazonaws.com/{object_name}"
+            return self._build_object_url(bucket_name, object_name)
         except StorageError:
             raise
         except (ConnectTimeoutError, ReadTimeoutError) as e:
@@ -371,5 +373,11 @@ class S3BucketClient:
     # ------------------------------------------------------------------
 
     def _extract_key(self, url: str) -> str:
-        """Extract the object key from a URL (last path segment)."""
-        return url.split("/")[-1]
+        """Extract the object key from a full object URL by stripping the host+bucket prefix."""
+        if self.host:
+            prefix = f"{self.host}/{self.DEFAULT_BUCKET_NAME}/"
+            if url.startswith(prefix):
+                return url[len(prefix):]
+        # AWS virtual-hosted style: https://<bucket>.s3.amazonaws.com/<key>
+        parts = url.split("/", 3)
+        return parts[3] if len(parts) > 3 else url

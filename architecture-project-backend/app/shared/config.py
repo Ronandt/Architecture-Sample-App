@@ -1,11 +1,15 @@
+from pathlib import Path
+
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_ENV_FILE = Path(__file__).parent.parent / ".env"
 
 
 class Settings(BaseSettings):
     """Application settings — all env vars are declared here. Never read os.environ directly."""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=_ENV_FILE, env_file_encoding="utf-8")
 
     # ── Database ──────────────────────────────────────────────────────────────
     DATABASE_URL: str = "sqlite:///./test.db"
@@ -17,7 +21,7 @@ class Settings(BaseSettings):
     KEYCLOAK_CLIENT_SECRET: SecretStr = SecretStr("")
     KEYCLOAK_CERT_FILEPATH: str = ""
     KEYCLOAK_ALLOWED_GROUPS: str = ""
-    KEYCLOAK_ADMIN_ROLE: str
+    KEYCLOAK_ADMIN_ROLE: str = ""
     KEYCLOAK_ADMIN_USERNAME: str = ""
     KEYCLOAK_ADMIN_PASSWORD: SecretStr = SecretStr("")
     KEYCLOAK_TIMEOUT: int = 10

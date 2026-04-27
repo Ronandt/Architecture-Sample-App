@@ -182,3 +182,72 @@ No additional config is needed — this is automatic. If Keycloak uses a self-si
 | Confidential | Yes | All endpoints incl. `get_token`, `refresh_token`, `logout` |
 
 > `KeycloakAdminAdapter` (admin operations) is intended for **development/testing only** and should not be used in production.
+
+---
+
+## MinIO Setup (Local S3)
+
+MinIO is an S3-compatible object store you can run locally instead of connecting to AWS. The app uses boto3 under the hood, so no code changes are needed — only `.env` values change.
+
+### 1. Start MinIO
+
+**Docker (recommended):**
+
+```bash
+docker run -p 9000:9000 -p 9001:9001 \
+  -e MINIO_ROOT_USER=minioadmin \
+  -e MINIO_ROOT_PASSWORD=minioadmin \
+  quay.io/minio/minio server /data --console-address ":9001"
+```
+
+| Port | Purpose |
+|---|---|
+| `9000` | S3 API (what the app talks to) |
+| `9001` | MinIO web console |
+
+Open the console at `http://localhost:9001` and log in with `minioadmin / minioadmin`.
+
+### 2. Create a Bucket
+
+1. In the MinIO console go to **Buckets → Create Bucket**.
+2. Enter a bucket name (e.g. `my-bucket`) — this becomes `S3_BUCKET`.
+3. Click **Create Bucket**.
+
+### 3. Create an Access Key
+
+1. Go to **Access Keys → Create access key**.
+2. Copy the **Access Key** and **Secret Key** that are shown — you won't see the secret again.
+
+### 4. Configure `.env`
+
+```env
+S3_ENDPOINT=http://localhost:9000
+S3_ACCESS_KEY=<your-access-key>
+S3_SECRET_KEY=<your-secret-key>
+S3_BUCKET=my-bucket
+S3_SSL_CERT=
+```
+
+> `S3_ENDPOINT` must point to port `9000`, not the console port `9001`.  
+> Leave `S3_SSL_CERT` blank — MinIO runs over plain HTTP in dev mode.
+
+### 5. Create the Bucket from Code (optional)
+
+`S3BucketClient` has a helper that creates the bucket if it doesn't already exist. You can call it once on startup or from a script:
+
+```python
+from infrastructure.adapters.s3_adapter import S3BucketClient
+
+client = S3BucketClient()
+client.create_bucket_if_not_exists("my-bucket")
+```
+
+### URL format
+
+When the app uploads a file it returns a URL in the form:
+
+```
+http://localhost:9000/my-bucket/object-key
+```
+
+This is the `S3_ENDPOINT/bucket/key` pattern — served directly by MinIO and accessible in the browser for public objects.

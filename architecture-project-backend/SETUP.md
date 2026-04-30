@@ -109,9 +109,9 @@ Open the admin console at `http://localhost:8080`.
 
 1. Inside your realm go to **Clients → Create client**.
 2. Set **Client ID** (e.g. `my-app`) — this becomes `KEYCLOAK_CLIENT_ID`.
-3. Set **Client authentication** to **On** (makes it a confidential client).
+3. Set **Client authentication** to **Off** (makes it a public client).
 4. Under **Valid redirect URIs** add `http://localhost:8000/*`.
-5. Save, then go to the **Credentials** tab and copy the **Client secret** — this becomes `KEYCLOAK_CLIENT_SECRET`.
+
 
 ### 4. Create a Test User (optional)
 

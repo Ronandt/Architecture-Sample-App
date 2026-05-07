@@ -92,7 +92,10 @@ class KeycloakAdapter:
                 "No SSL cert configured — connecting without verification to %s",
                 certs_url,
             )
-            self._public_key_cache = self._fetch_public_key(certs_url)
+            unverified = ssl.create_default_context()
+            unverified.check_hostname = False
+            unverified.verify_mode = ssl.CERT_NONE
+            self._public_key_cache = self._fetch_public_key(certs_url, context=unverified)
             return self._public_key_cache
 
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
